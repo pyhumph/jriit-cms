@@ -1,6 +1,6 @@
 # JRIIT CMS Dashboard
 
-A modern, comprehensive Content Management System built with Next.js 15, designed specifically for the JRIIT (Jawaharlal Nehru Institute of Information Technology) website.
+A modern, comprehensive Content Management System built with Next.js 15, designed specifically for the JR Institute of Information Technology website.
 
 ## 🚀 Features
 
@@ -201,9 +201,9 @@ This project is licensed under the MIT License.
 
 ## 👥 **Team**
 
-- **Developer**: [Your Name]
-- **Client**: JRIIT (Jawaharlal Nehru Institute of Information Technology)
-- **Project**: CMS Dashboard for JRIIT Website
+- **Developer**: Humphrey David
+- **Client**: JR Institute of Information Technology
+- **Project**: CMS Dashboard for JR Institute of Information Technology Website
 
 ## 📞 **Support**
 

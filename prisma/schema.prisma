@@ -1,0 +1,575 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// =============================================================================
+// AUTHENTICATION & USER MANAGEMENT
+// =============================================================================
+
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String   // Should be hashed in application code
+  name      String
+  role      Role     @default(ADMIN)
+  avatar    String?
+  isActive  Boolean  @default(true)
+  lastLogin DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  posts           Post[]
+  media           Media[]
+  news            News[]
+  events          Event[]
+  pages           Page[]
+  testimonials    Testimonial[]
+  faculty         Faculty[]
+  departments     Department[]
+  programs        Program[]
+  feeStructures   FeeStructure[]
+  photoAlbums     PhotoAlbum[]
+  videos          Video[]
+  notifications   Notification[]
+  activityLogs    ActivityLog[]
+
+  @@map("admins")
+}
+
+// =============================================================================
+// GLOBAL SETTINGS & CONFIGURATION
+// =============================================================================
+
+model GlobalSettings {
+  id                String   @id @default(cuid())
+  siteName          String   @default("JRIIIT Institute")
+  siteTagline       String?
+  siteDescription   String?
+  logo              String?
+  favicon           String?
+  academicYear      String   @default("2025-2026")
+  currentYear       Int      @default(2025)
+  copyrightText     String   @default("© {CURRENT_YEAR} {SITE_NAME}. All rights reserved.")
+  
+  // Contact Information
+  contactEmail      String?
+  contactPhone      String?
+  contactAddress    String?
+  contactCity       String?
+  contactState      String?
+  contactZip        String?
+  contactCountry    String?
+  
+  // Social Media Links
+  facebookUrl       String?
+  twitterUrl        String?
+  instagramUrl      String?
+  linkedinUrl       String?
+  youtubeUrl        String?
+  
+  // Site-wide Settings
+  maintenanceMode   Boolean  @default(false)
+  maintenanceMessage String?
+  announcementBanner String?
+  announcementLink   String?
+  showAnnouncement   Boolean  @default(false)
+  
+  // SEO Defaults
+  defaultMetaTitle       String?
+  defaultMetaDescription String?
+  defaultMetaKeywords    String?
+  googleAnalyticsId      String?
+  
+  // File Upload Settings
+  maxFileSize        Int      @default(10485760) // 10MB
+  allowedImageTypes  String   @default("jpg,jpeg,png,webp,gif")
+  allowedVideoTypes  String   @default("mp4,webm,avi")
+  allowedDocTypes    String   @default("pdf,doc,docx,txt")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("global_settings")
+}
+
+// =============================================================================
+// TEXT SNIPPETS & VARIABLES
+// =============================================================================
+
+model TextSnippet {
+  id          String   @id @default(cuid())
+  key         String   @unique // e.g., "welcome_message", "academic_year_text"
+  title       String
+  content     String   // Can contain variables like {CURRENT_YEAR}, {SITE_NAME}
+  description String?
+  category    String?  // e.g., "homepage", "footer", "navigation"
+  isActive    Boolean  @default(true)
+  usageCount  Int      @default(0) // Track how many times it's used
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("text_snippets")
+}
+
+// =============================================================================
+// NAVIGATION MANAGEMENT
+// =============================================================================
+
+model Navigation {
+  id          String   @id @default(cuid())
+  label       String
+  url         String?
+  icon        String?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  isExternal  Boolean  @default(false)
+  target      String   @default("_self") // _self, _blank
+  parentId    String?
+  level       Int      @default(0) // 0 = main menu, 1 = submenu, etc.
+  position    NavigationPosition @default(HEADER)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Self-referential relation for nested menus
+  parent   Navigation?  @relation("NavigationHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children Navigation[] @relation("NavigationHierarchy")
+
+  @@map("navigation")
+}
+
+// =============================================================================
+// CONTENT MANAGEMENT
+// =============================================================================
+
+model Post {
+  id            String    @id @default(cuid())
+  title         String
+  slug          String    @unique
+  content       String
+  excerpt       String?
+  featuredImage String?
+  published     Boolean   @default(false)
+  publishedAt  DateTime?
+  authorId      String
+  tags          String?   // JSON array of tags
+  metaTitle     String?
+  metaDescription String?
+  metaKeywords  String?
+  viewCount     Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  author Admin @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("posts")
+}
+
+model News {
+  id              String    @id @default(cuid())
+  title           String
+  slug            String    @unique
+  content         String
+  excerpt         String?
+  featuredImage   String?
+  published       Boolean   @default(false)
+  publishedAt     DateTime?
+  authorId        String
+  category        String?
+  tags            String?   // JSON array of tags
+  metaTitle       String?
+  metaDescription String?
+  metaKeywords    String?
+  viewCount       Int       @default(0)
+  isBreaking      Boolean   @default(false)
+  isFeatured      Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  author Admin @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("news")
+}
+
+model Event {
+  id              String    @id @default(cuid())
+  title           String
+  slug            String    @unique
+  description     String
+  content         String?
+  featuredImage   String?
+  startDate       DateTime
+  endDate         DateTime?
+  location        String?
+  venue           String?
+  registrationUrl String?
+  capacity        Int?
+  isPublic        Boolean   @default(true)
+  isFree          Boolean   @default(true)
+  price           Decimal?
+  currency        String    @default("USD")
+  category        String?
+  tags            String?   // JSON array of tags
+  metaTitle       String?
+  metaDescription String?
+  metaKeywords    String?
+  viewCount       Int       @default(0)
+  isFeatured      Boolean   @default(false)
+  registrationDeadline DateTime?
+  authorId        String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  author Admin @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("events")
+}
+
+model Page {
+  id              String    @id @default(cuid())
+  title           String
+  slug            String    @unique
+  content         String
+  excerpt         String?
+  featuredImage   String?
+  published       Boolean   @default(false)
+  publishedAt     DateTime?
+  authorId        String
+  template        String?   // Custom template for special pages
+  metaTitle       String?
+  metaDescription String?
+  metaKeywords    String?
+  viewCount       Int       @default(0)
+  isHomepage      Boolean   @default(false)
+  showInMenu      Boolean   @default(true)
+  order           Int       @default(0)
+  parentId        String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  author Admin @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  // Self-referential relation for page hierarchy
+  parent   Page?  @relation("PageHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children Page[] @relation("PageHierarchy")
+
+  @@map("pages")
+}
+
+// =============================================================================
+// MEDIA & GALLERY MANAGEMENT
+// =============================================================================
+
+model Media {
+  id          String   @id @default(cuid())
+  filename    String
+  originalName String
+  url         String
+  thumbnailUrl String?
+  type        MediaType
+  mimeType    String
+  size        Int      // File size in bytes
+  width       Int?
+  height      Int?
+  altText     String?
+  caption     String?
+  description String?
+  tags        String?  // JSON array of tags
+  uploadedBy  String
+  isPublic    Boolean  @default(true)
+  usageCount  Int      @default(0) // Track how many times it's used
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  uploader Admin @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+  albumPhotos AlbumPhoto[]
+
+  @@map("media")
+}
+
+model PhotoAlbum {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String?
+  coverImage  String?
+  isPublic    Boolean  @default(true)
+  order       Int      @default(0)
+  authorId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  author Admin @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  photos AlbumPhoto[]
+
+  @@map("photo_albums")
+}
+
+model AlbumPhoto {
+  id        String   @id @default(cuid())
+  albumId   String
+  mediaId   String
+  caption   String?
+  altText   String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  // Relations
+  album PhotoAlbum @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  media Media     @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@map("album_photos")
+}
+
+model Video {
+  id              String    @id @default(cuid())
+  title           String
+  slug            String    @unique
+  description     String?
+  url             String    // YouTube/Vimeo URL or uploaded file URL
+  thumbnailUrl    String?
+  duration        Int?       // Duration in seconds
+  platform        VideoPlatform @default(YOUTUBE)
+  isPublic        Boolean   @default(true)
+  isFeatured      Boolean   @default(false)
+  category        String?
+  tags            String?   // JSON array of tags
+  viewCount       Int       @default(0)
+  authorId        String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  author Admin @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("videos")
+}
+
+// =============================================================================
+// ACADEMIC MANAGEMENT
+// =============================================================================
+
+model Department {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  description     String?
+  headOfDepartment String?
+  email           String?
+  phone           String?
+  office          String?
+  isActive        Boolean  @default(true)
+  order           Int      @default(0)
+  authorId        String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  author   Admin     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  programs Program[]
+  faculty  Faculty[]
+
+  @@map("departments")
+}
+
+model Program {
+  id                    String   @id @default(cuid())
+  name                  String
+  slug                  String   @unique
+  description           String?
+  shortDescription      String?
+  duration              String?  // e.g., "2 years", "4 semesters"
+  degree                String?  // e.g., "Bachelor", "Diploma", "Certificate"
+  departmentId          String?
+  requirements          String?  // Admission requirements
+  curriculum            String?  // Course outline
+  careerOpportunities   String?
+  featuredImage         String?
+  isActive              Boolean  @default(true)
+  isFeatured            Boolean  @default(false)
+  order                 Int      @default(0)
+  authorId              String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  author     Admin      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  fees       FeeStructure[]
+
+  @@map("programs")
+}
+
+model Faculty {
+  id          String   @id @default(cuid())
+  name        String
+  title       String?
+  email       String?  @unique
+  phone       String?
+  bio         String?
+  photo       String?
+  departmentId String?
+  specialization String?
+  education   String?
+  experience  String?
+  achievements String?
+  socialLinks String?  // JSON object with social media links
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  authorId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  author     Admin      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  @@map("faculty")
+}
+
+model FeeStructure {
+  id              String   @id @default(cuid())
+  programId        String?
+  academicYear     String
+  semester         String?  // e.g., "Semester 1", "Year 1"
+  tuitionFee       Decimal
+  registrationFee  Decimal?
+  libraryFee       Decimal?
+  labFee          Decimal?
+  otherFees        String?  // JSON object for additional fees
+  totalFee         Decimal
+  currency         String   @default("USD")
+  paymentDeadline  DateTime?
+  installmentPlan  String?  // JSON object for payment plans
+  scholarships     String?  // Available scholarships
+  notes            String?
+  isActive         Boolean  @default(true)
+  authorId         String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  author  Admin    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  program Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
+
+  @@map("fee_structures")
+}
+
+// =============================================================================
+// WEBSITE CONTENT
+// =============================================================================
+
+model Testimonial {
+  id        String   @id @default(cuid())
+  name      String
+  title     String?  // e.g., "Student", "Alumni", "Parent"
+  content   String
+  photo     String?
+  rating    Int?     // 1-5 stars
+  isActive  Boolean  @default(true)
+  order     Int      @default(0)
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  author Admin @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("testimonials")
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  title       String
+  message     String
+  type        NotificationType @default(INFO)
+  isActive    Boolean  @default(true)
+  startDate   DateTime?
+  endDate     DateTime?
+  showOnHomepage Boolean @default(false)
+  showOnAllPages Boolean @default(false)
+  targetPages String?  // JSON array of page slugs
+  authorId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  author Admin @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// =============================================================================
+// SYSTEM & LOGGING
+// =============================================================================
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  action    String   // e.g., "created", "updated", "deleted"
+  entity    String   // e.g., "Post", "Event", "Page"
+  entityId  String
+  details   String?  // JSON object with change details
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  admin Admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@map("activity_logs")
+}
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+enum Role {
+  ADMIN
+  EDITOR
+  AUTHOR
+}
+
+enum MediaType {
+  IMAGE
+  DOCUMENT
+  VIDEO
+  AUDIO
+  OTHER
+}
+
+enum NavigationPosition {
+  HEADER
+  FOOTER
+  SIDEBAR
+}
+
+enum VideoPlatform {
+  YOUTUBE
+  VIMEO
+  UPLOADED
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  SUCCESS
+  ERROR
+}

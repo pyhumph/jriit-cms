@@ -64,13 +64,13 @@ export default function HomepageEditor() {
     try {
       setLoading(true)
       
-      // Try the scraper API first
-      let response = await fetch('/api/website-content-scraper?type=all')
+      // Try the real content API first
+      let response = await fetch('/api/fetch-real-content?type=all')
       let data = await response.json()
       
-      // If scraper fails, try the mock API
+      // If real content API fails, try the mock API
       if (!data.success) {
-        console.log('Scraper API failed, trying mock API...')
+        console.log('Real content API failed, trying mock API...')
         response = await fetch('/api/website-content-mock?type=all')
         data = await response.json()
       }

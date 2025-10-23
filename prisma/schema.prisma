@@ -491,6 +491,10 @@ model HomepageComponent {
   mediaUrl    String?  // URL to media file
   ctaText     String?  // Call-to-action button text
   ctaLink     String?  // Call-to-action button link
+  cta2Text    String?  // Second call-to-action button text
+  cta2Link    String?  // Second call-to-action button link
+  cta3Text    String?  // Third call-to-action button text
+  cta3Link    String?  // Third call-to-action button link
   isActive    Boolean  @default(true)
   order       Int      @default(0)
   settings    String?  // JSON object for component-specific settings

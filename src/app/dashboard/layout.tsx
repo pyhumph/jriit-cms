@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { 
   HomeIcon, 
-  DocumentTextIcon, 
   PhotoIcon, 
   CogIcon, 
   Bars3Icon,
@@ -17,20 +16,24 @@ import {
   BuildingOfficeIcon,
   UserGroupIcon,
   SparklesIcon,
-  PlayIcon
+  PlayIcon,
+  GlobeAltIcon,
+  ClipboardDocumentListIcon
 } from '@heroicons/react/24/outline'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, color: 'text-blue-600', bgColor: 'bg-blue-50' },
-  { name: 'Homepage', href: '/dashboard/homepage', icon: SparklesIcon, color: 'text-purple-600', bgColor: 'bg-purple-50' },
+  { name: 'Website Overview', href: '/dashboard/website-overview', icon: GlobeAltIcon, color: 'text-purple-600', bgColor: 'bg-purple-50' },
+  { name: 'Pages Management', href: '/dashboard/pages-management', icon: ClipboardDocumentListIcon, color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
+  { name: 'Homepage', href: '/dashboard/homepage', icon: SparklesIcon, color: 'text-pink-600', bgColor: 'bg-pink-50' },
   { name: 'Hero Section', href: '/dashboard/hero', icon: PlayIcon, color: 'text-red-600', bgColor: 'bg-red-50' },
   { name: 'News & Events', href: '/dashboard/news', icon: NewspaperIcon, color: 'text-green-600', bgColor: 'bg-green-50' },
-  { name: 'Programs', href: '/dashboard/programs', icon: AcademicCapIcon, color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
-  { name: 'Departments', href: '/dashboard/departments', icon: BuildingOfficeIcon, color: 'text-orange-600', bgColor: 'bg-orange-50' },
-  { name: 'Faculty', href: '/dashboard/faculty', icon: UserGroupIcon, color: 'text-pink-600', bgColor: 'bg-pink-50' },
-  { name: 'Pages', href: '/dashboard/pages', icon: DocumentTextIcon, color: 'text-gray-600', bgColor: 'bg-gray-50' },
-  { name: 'Media Library', href: '/dashboard/media', icon: PhotoIcon, color: 'text-cyan-600', bgColor: 'bg-cyan-50' },
-  { name: 'Global Settings', href: '/dashboard/settings', icon: CogIcon, color: 'text-yellow-600', bgColor: 'bg-yellow-50' },
+  { name: 'Programs', href: '/dashboard/programs', icon: AcademicCapIcon, color: 'text-orange-600', bgColor: 'bg-orange-50' },
+  { name: 'Departments', href: '/dashboard/departments', icon: BuildingOfficeIcon, color: 'text-yellow-600', bgColor: 'bg-yellow-50' },
+  { name: 'Faculty', href: '/dashboard/faculty', icon: UserGroupIcon, color: 'text-cyan-600', bgColor: 'bg-cyan-50' },
+  { name: 'Media Library', href: '/dashboard/media', icon: PhotoIcon, color: 'text-teal-600', bgColor: 'bg-teal-50' },
+  { name: 'Global Settings', href: '/dashboard/settings', icon: CogIcon, color: 'text-gray-600', bgColor: 'bg-gray-50' },
 ]
 
 export default function DashboardLayout({
@@ -176,6 +179,7 @@ export default function DashboardLayout({
             </div>
 
             <div className="flex items-center space-x-4">
+              <ThemeToggle />
               <div className="hidden sm:flex items-center space-x-3">
                 <div className="text-right">
                   <p className="text-sm font-medium text-gray-900">{session.user.name}</p>

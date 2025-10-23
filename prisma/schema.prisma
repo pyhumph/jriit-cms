@@ -44,6 +44,10 @@ model Admin {
   videos          Video[]
   notifications   Notification[]
   activityLogs    ActivityLog[]
+  homepageComponents HomepageComponent[]
+  heroSlides      HeroSlide[]
+  pageComponents  PageComponent[]
+  websitePages    WebsitePage[]
 
   @@map("admins")
 }
@@ -470,6 +474,100 @@ model FeeStructure {
   program Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
 
   @@map("fee_structures")
+}
+
+// =============================================================================
+// HOMEPAGE COMPONENTS MANAGEMENT
+// =============================================================================
+
+model HomepageComponent {
+  id          String   @id @default(cuid())
+  name        String   // e.g., "Hero Section", "About JRIIT"
+  type        String   // e.g., "hero", "about", "programs", "statistics"
+  title       String?  // Component title
+  subtitle    String?  // Component subtitle
+  content     String?  // Main content/description
+  mediaType   String?  // "image", "video", "none"
+  mediaUrl    String?  // URL to media file
+  ctaText     String?  // Call-to-action button text
+  ctaLink     String?  // Call-to-action button link
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  settings    String?  // JSON object for component-specific settings
+  authorId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  author Admin @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("homepage_components")
+}
+
+model HeroSlide {
+  id          String   @id @default(cuid())
+  title       String
+  subtitle    String
+  description String?
+  mediaType   String   @default("image") // "image" or "video"
+  mediaUrl    String
+  ctaText     String?
+  ctaLink     String?
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  authorId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  author Admin @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("hero_slides")
+}
+
+model PageComponent {
+  id          String   @id @default(cuid())
+  pageName    String   // e.g., "about", "programs", "contact", "admission"
+  componentName String // e.g., "hero", "about-section", "contact-form"
+  title       String?
+  subtitle    String?
+  content     String?
+  mediaType   String?  // "image", "video", "none"
+  mediaUrl    String?
+  ctaText     String?
+  ctaLink     String?
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  settings    String?  // JSON object for component-specific settings
+  authorId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  author Admin @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@unique([pageName, componentName])
+  @@map("page_components")
+}
+
+model WebsitePage {
+  id          String   @id @default(cuid())
+  name        String   // e.g., "About", "Programs", "Contact"
+  slug        String   @unique // e.g., "about", "programs", "contact"
+  title       String?
+  description String?
+  metaTitle   String?
+  metaDescription String?
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  authorId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  author Admin @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("website_pages")
 }
 
 // =============================================================================

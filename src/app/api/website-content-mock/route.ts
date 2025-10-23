@@ -25,9 +25,19 @@ export async function GET(request: NextRequest) {
         mediaUrl: '/ele.mp4',
         ctaText: 'EXPLORE COURSES',
         ctaLink: '#programs',
+        cta2Text: 'PRICING & SCHOLARSHIPS',
+        cta2Link: '/fees',
+        cta3Text: 'WHY JRIIT',
+        cta3Link: '#about',
         isActive: true,
         order: 1,
-        settings: '{}',
+        settings: JSON.stringify({
+          buttons: [
+            { text: 'EXPLORE COURSES', link: '#programs', type: 'primary' },
+            { text: 'PRICING & SCHOLARSHIPS', link: '/fees', type: 'secondary' },
+            { text: 'WHY JRIIT', link: '#about', type: 'tertiary' }
+          ]
+        }),
         authorId: session.user.id,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),

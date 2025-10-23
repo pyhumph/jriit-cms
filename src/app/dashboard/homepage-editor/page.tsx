@@ -417,7 +417,7 @@ export default function HomepageEditor() {
                         value={component.ctaText || ''}
                         onChange={(e) => handleComponentChange(component.id, 'ctaText', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Learn More"
+                        placeholder="EXPLORE COURSES"
                       />
                     </div>
                     <div>
@@ -427,7 +427,47 @@ export default function HomepageEditor() {
                         value={component.ctaLink || ''}
                         onChange={(e) => handleComponentChange(component.id, 'ctaLink', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="/about"
+                        placeholder="#programs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">CTA 2 Text</label>
+                      <input
+                        type="text"
+                        value={component.cta2Text || ''}
+                        onChange={(e) => handleComponentChange(component.id, 'cta2Text', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="PRICING & SCHOLARSHIPS"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">CTA 2 Link</label>
+                      <input
+                        type="url"
+                        value={component.cta2Link || ''}
+                        onChange={(e) => handleComponentChange(component.id, 'cta2Link', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="/fees"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">CTA 3 Text</label>
+                      <input
+                        type="text"
+                        value={component.cta3Text || ''}
+                        onChange={(e) => handleComponentChange(component.id, 'cta3Text', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="WHY JRIIT"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">CTA 3 Link</label>
+                      <input
+                        type="url"
+                        value={component.cta3Link || ''}
+                        onChange={(e) => handleComponentChange(component.id, 'cta3Link', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="#about"
                       />
                     </div>
                   </div>

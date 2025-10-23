@@ -23,11 +23,15 @@ export async function GET(request: NextRequest) {
         fields: {
           title: { selector: 'h1, .hero-title', default: 'GET READY' },
           subtitle: { selector: 'h2, .hero-subtitle', default: 'UNLEASH YOUR GREATNESS' },
-          description: { selector: '.hero-description, p', default: 'Empowering Future Technology Leaders' },
+          description: { selector: '.hero-description, p', default: 'Join us in shaping the future of technology through innovative education and cutting-edge programs.' },
           videoUrl: { selector: 'video source, .hero-video', default: '/ele.mp4' },
           imageUrl: { selector: '.hero-image img, .hero-bg', default: null },
-          ctaText: { selector: '.hero-cta, .cta-button', default: 'Learn More' },
-          ctaLink: { selector: '.hero-cta a, .cta-button a', default: '/about' }
+          ctaText: { selector: '.hero-cta, .cta-button', default: 'EXPLORE COURSES' },
+          ctaLink: { selector: '.hero-cta a, .cta-button a', default: '#programs' },
+          cta2Text: { selector: '.hero-cta2, .cta-button2', default: 'PRICING & SCHOLARSHIPS' },
+          cta2Link: { selector: '.hero-cta2 a, .cta-button2 a', default: '/fees' },
+          cta3Text: { selector: '.hero-cta3, .cta-button3', default: 'WHY JRIIT' },
+          cta3Link: { selector: '.hero-cta3 a, .cta-button3 a', default: '#about' }
         }
       },
       {

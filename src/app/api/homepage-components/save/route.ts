@@ -17,10 +17,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Components must be an array' }, { status: 400 })
     }
 
+    // Get the first admin user or create a default one
+    let adminUser = await prisma.admin.findFirst()
+    
+    if (!adminUser) {
+      // Create a default admin user
+      adminUser = await prisma.admin.create({
+        data: {
+          name: 'System Admin',
+          email: 'admin@jriit.com',
+          password: '$2b$10$default.hash.here', // Default hashed password
+          role: 'ADMIN'
+        }
+      })
+    }
+
     // Clear existing homepage components
-    await prisma.homepageComponent.deleteMany({
-      where: { authorId: session.user.id }
-    })
+    await prisma.homepageComponent.deleteMany()
 
     // Create new components
     const createdComponents = await Promise.all(
@@ -39,7 +52,7 @@ export async function POST(request: NextRequest) {
             isActive: component.isActive,
             order: index + 1,
             settings: component.settings || '{}',
-            authorId: session.user.id
+            authorId: adminUser.id
           }
         })
       })

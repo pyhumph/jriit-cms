@@ -30,6 +30,10 @@ export async function GET(request: NextRequest) {
         mediaUrl: true,
         ctaText: true,
         ctaLink: true,
+        cta2Text: true,
+        cta2Link: true,
+        cta3Text: true,
+        cta3Link: true,
         order: true,
         settings: true
       }
@@ -48,4 +52,5 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+
 

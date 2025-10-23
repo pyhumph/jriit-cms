@@ -51,28 +51,38 @@ interface HomepageComponent {
 
 const componentIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   hero: PlayIcon,
-  'breaking-news': MegaphoneIcon,
   about: BookOpenIcon,
   programs: ClipboardDocumentListIcon,
   statistics: ChartBarIcon,
-  gallery: PhotoIcon,
-  news: DocumentTextIcon,
+  'breaking-news': MegaphoneIcon,
+  accreditation: DocumentTextIcon,
+  philosophy: BookOpenIcon,
+  history: DocumentTextIcon,
+  partnership: UsersIcon,
   events: MegaphoneIcon,
-  testimonials: UsersIcon,
-  contact: CogIcon
+  'campus-news': DocumentTextIcon,
+  'with-jriit': UsersIcon,
+  downloads: DocumentTextIcon,
+  fullscreen: PhotoIcon,
+  stuff: DocumentTextIcon
 }
 
 const componentColors: Record<string, string> = {
   hero: 'bg-red-50 text-red-600 border-red-200',
-  'breaking-news': 'bg-orange-50 text-orange-600 border-orange-200',
   about: 'bg-blue-50 text-blue-600 border-blue-200',
   programs: 'bg-green-50 text-green-600 border-green-200',
   statistics: 'bg-purple-50 text-purple-600 border-purple-200',
-  gallery: 'bg-pink-50 text-pink-600 border-pink-200',
-  news: 'bg-indigo-50 text-indigo-600 border-indigo-200',
-  events: 'bg-yellow-50 text-yellow-600 border-yellow-200',
-  testimonials: 'bg-cyan-50 text-cyan-600 border-cyan-200',
-  contact: 'bg-gray-50 text-gray-600 border-gray-200'
+  'breaking-news': 'bg-orange-50 text-orange-600 border-orange-200',
+  accreditation: 'bg-indigo-50 text-indigo-600 border-indigo-200',
+  philosophy: 'bg-pink-50 text-pink-600 border-pink-200',
+  history: 'bg-yellow-50 text-yellow-600 border-yellow-200',
+  partnership: 'bg-cyan-50 text-cyan-600 border-cyan-200',
+  events: 'bg-teal-50 text-teal-600 border-teal-200',
+  'campus-news': 'bg-emerald-50 text-emerald-600 border-emerald-200',
+  'with-jriit': 'bg-violet-50 text-violet-600 border-violet-200',
+  downloads: 'bg-amber-50 text-amber-600 border-amber-200',
+  fullscreen: 'bg-rose-50 text-rose-600 border-rose-200',
+  stuff: 'bg-gray-50 text-gray-600 border-gray-200'
 }
 
 export default function HomepagePage() {
@@ -91,20 +101,28 @@ export default function HomepagePage() {
     try {
       setLoading(true)
       
-      // Try the real content API first
-      let response = await fetch('/api/fetch-real-content?type=all')
+      // Try the comprehensive API that fetches ALL homepage components
+      let response = await fetch('/api/fetch-all-homepage-components')
       let data = await response.json()
       
-      // If real content API fails, try the mock API
+      // If comprehensive API fails, try the basic real content API
       if (!data.success) {
-        console.log('Real content API failed, trying mock API...')
+        console.log('Comprehensive API failed, trying basic real content API...')
+        response = await fetch('/api/fetch-real-content?type=all')
+        data = await response.json()
+      }
+      
+      // If basic API also fails, try the mock API
+      if (!data.success) {
+        console.log('Basic real content API failed, trying mock API...')
         response = await fetch('/api/website-content-mock?type=all')
         data = await response.json()
       }
       
       if (data.success) {
         setComponents(data.components)
-        console.log('Fetched components:', data.components.length)
+        console.log('Fetched ALL homepage components:', data.components.length)
+        console.log('Components found:', data.components.map(c => c.name).join(', '))
       } else {
         console.error('Failed to fetch components:', data.error)
       }

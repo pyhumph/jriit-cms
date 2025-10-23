@@ -14,7 +14,12 @@ import {
   EyeIcon,
   PencilIcon,
   PlusIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  CheckIcon,
+  ChevronUpIcon,
+  ChevronDownIcon,
+  SaveIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline'
 
 interface HomepageComponent {
@@ -28,6 +33,10 @@ interface HomepageComponent {
   mediaUrl?: string
   ctaText?: string
   ctaLink?: string
+  cta2Text?: string
+  cta2Link?: string
+  cta3Text?: string
+  cta3Link?: string
   isActive: boolean
   order: number
   settings?: string
@@ -48,39 +57,33 @@ const componentIcons: Record<string, React.ComponentType<{ className?: string }>
   programs: ClipboardDocumentListIcon,
   statistics: ChartBarIcon,
   gallery: PhotoIcon,
-  testimonials: UsersIcon,
-  downloads: DocumentTextIcon,
+  news: DocumentTextIcon,
   events: MegaphoneIcon,
-  news: MegaphoneIcon,
-  partnerships: UsersIcon,
-  philosophy: BookOpenIcon,
-  history: BookOpenIcon,
-  showcase: PhotoIcon
+  testimonials: UsersIcon,
+  contact: CogIcon
 }
 
-const componentColors: Record<string, { color: string; bgColor: string }> = {
-  hero: { color: 'text-red-600', bgColor: 'bg-red-50' },
-  'breaking-news': { color: 'text-green-600', bgColor: 'bg-green-50' },
-  about: { color: 'text-blue-600', bgColor: 'bg-blue-50' },
-  programs: { color: 'text-purple-600', bgColor: 'bg-purple-50' },
-  statistics: { color: 'text-orange-600', bgColor: 'bg-orange-50' },
-  gallery: { color: 'text-cyan-600', bgColor: 'bg-cyan-50' },
-  testimonials: { color: 'text-pink-600', bgColor: 'bg-pink-50' },
-  downloads: { color: 'text-gray-600', bgColor: 'bg-gray-50' },
-  events: { color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
-  news: { color: 'text-emerald-600', bgColor: 'bg-emerald-50' },
-  partnerships: { color: 'text-amber-600', bgColor: 'bg-amber-50' },
-  philosophy: { color: 'text-violet-600', bgColor: 'bg-violet-50' },
-  history: { color: 'text-slate-600', bgColor: 'bg-slate-50' },
-  showcase: { color: 'text-rose-600', bgColor: 'bg-rose-50' }
+const componentColors: Record<string, string> = {
+  hero: 'bg-red-50 text-red-600 border-red-200',
+  'breaking-news': 'bg-orange-50 text-orange-600 border-orange-200',
+  about: 'bg-blue-50 text-blue-600 border-blue-200',
+  programs: 'bg-green-50 text-green-600 border-green-200',
+  statistics: 'bg-purple-50 text-purple-600 border-purple-200',
+  gallery: 'bg-pink-50 text-pink-600 border-pink-200',
+  news: 'bg-indigo-50 text-indigo-600 border-indigo-200',
+  events: 'bg-yellow-50 text-yellow-600 border-yellow-200',
+  testimonials: 'bg-cyan-50 text-cyan-600 border-cyan-200',
+  contact: 'bg-gray-50 text-gray-600 border-gray-200'
 }
 
-export default function HomepageManagement() {
+export default function HomepagePage() {
   const [components, setComponents] = useState<HomepageComponent[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [editingComponent, setEditingComponent] = useState<string | null>(null)
+  const [hasChanges, setHasChanges] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
 
-  // Fetch components on mount
   useEffect(() => {
     fetchComponents()
   }, [])
@@ -88,305 +91,341 @@ export default function HomepageManagement() {
   const fetchComponents = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/homepage-components')
-      const data = await response.json()
+      
+      // Try the real content API first
+      let response = await fetch('/api/fetch-real-content?type=all')
+      let data = await response.json()
+      
+      // If real content API fails, try the mock API
+      if (!data.success) {
+        console.log('Real content API failed, trying mock API...')
+        response = await fetch('/api/website-content-mock?type=all')
+        data = await response.json()
+      }
       
       if (data.success) {
         setComponents(data.components)
+        console.log('Fetched components:', data.components.length)
       } else {
-        setError('Failed to fetch components')
+        console.error('Failed to fetch components:', data.error)
       }
     } catch (error) {
       console.error('Error fetching components:', error)
-      setError('Failed to fetch components')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleStatusChange = async (id: string, isActive: boolean) => {
+  const handleSaveChanges = async () => {
     try {
-      const response = await fetch(`/api/homepage-components/${id}`, {
-        method: 'PUT',
+      setSaving(true)
+      const response = await fetch('/api/homepage-components/save', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ isActive })
+        body: JSON.stringify({ components }),
       })
-      
-      if (response.ok) {
-        setComponents(prev => 
-          prev.map(comp => 
-            comp.id === id 
-              ? { ...comp, isActive }
-              : comp
-          )
-        )
+
+      const data = await response.json()
+
+      if (data.success) {
+        setHasChanges(false)
+        setEditingComponent(null)
+        // Show success message
+        alert('Changes saved successfully!')
+      } else {
+        alert('Failed to save changes: ' + data.error)
       }
     } catch (error) {
-      console.error('Error updating component status:', error)
+      console.error('Error saving components:', error)
+      alert('Failed to save changes')
+    } finally {
+      setSaving(false)
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this component?')) return
-    
-    try {
-      const response = await fetch(`/api/homepage-components/${id}`, {
-        method: 'DELETE'
-      })
+  const handleComponentUpdate = (id: string, field: string, value: string) => {
+    setComponents(prev => prev.map(comp => 
+      comp.id === id ? { ...comp, [field]: value } : comp
+    ))
+    setHasChanges(true)
+  }
+
+  const handleReorder = (id: string, direction: 'up' | 'down') => {
+    setComponents(prev => {
+      const sorted = [...prev].sort((a, b) => a.order - b.order)
+      const index = sorted.findIndex(comp => comp.id === id)
       
-      if (response.ok) {
-        setComponents(prev => prev.filter(comp => comp.id !== id))
+      if (direction === 'up' && index > 0) {
+        [sorted[index], sorted[index - 1]] = [sorted[index - 1], sorted[index]]
+      } else if (direction === 'down' && index < sorted.length - 1) {
+        [sorted[index], sorted[index + 1]] = [sorted[index + 1], sorted[index]]
       }
-    } catch (error) {
-      console.error('Error deleting component:', error)
-    }
+      
+      // Update order values
+      return sorted.map((comp, idx) => ({ ...comp, order: idx + 1 }))
+    })
+    setHasChanges(true)
   }
 
-  const getStatusBadge = (isActive: boolean) => {
-    const styles = {
-      true: 'bg-green-100 text-green-800',
-      false: 'bg-gray-100 text-gray-800'
-    }
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${styles[isActive.toString() as keyof typeof styles]}`}>
-        {isActive ? 'Active' : 'Inactive'}
-      </span>
-    )
-  }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60))
-    
-    if (diffInHours < 1) return 'Just now'
-    if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`
-    if (diffInHours < 168) return `${Math.floor(diffInHours / 24)} day${Math.floor(diffInHours / 24) > 1 ? 's' : ''} ago`
-    return date.toLocaleDateString()
+  const handleToggleActive = (id: string) => {
+    setComponents(prev => prev.map(comp => 
+      comp.id === id ? { ...comp, isActive: !comp.isActive } : comp
+    ))
+    setHasChanges(true)
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <ArrowPathIcon className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600">Loading homepage components...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <button 
-            onClick={fetchComponents}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Try Again
-          </button>
+          <ArrowPathIcon className="h-12 w-12 text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600 font-medium">Loading Homepage Components...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       {/* Header */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Homepage Management</h1>
-            <p className="text-gray-600 mt-1">Manage all components of your website homepage</p>
-          </div>
-          <div className="flex items-center space-x-3">
-            <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-              <EyeIcon className="h-4 w-4 mr-2" />
-              Preview Homepage
-            </button>
-            <button className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Add Component
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <ChartBarIcon className="h-6 w-6 text-green-600" />
+      <div className="bg-white shadow-sm border-b border-gray-200">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Homepage Management</h1>
+              <p className="text-gray-600 mt-1">Manage all homepage components and content</p>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Active Components</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {components.filter(c => c.isActive).length}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-gray-100 rounded-lg">
-              <CogIcon className="h-6 w-6 text-gray-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Inactive Components</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {components.filter(c => !c.isActive).length}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <PlayIcon className="h-6 w-6 text-blue-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Hero Slides</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {components.filter(c => c.type === 'hero').length}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <DocumentTextIcon className="h-6 w-6 text-blue-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Components</p>
-              <p className="text-2xl font-bold text-gray-900">{components.length}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Components Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {components.map((component) => {
-          const IconComponent = componentIcons[component.type] || PlayIcon
-          const colors = componentColors[component.type] || { color: 'text-gray-600', bgColor: 'bg-gray-50' }
-          
-          return (
-            <div key={component.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center">
-                  <div className={`p-3 rounded-lg ${colors.bgColor}`}>
-                    <IconComponent className={`h-6 w-6 ${colors.color}`} />
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="text-lg font-semibold text-gray-900">{component.name}</h3>
-                    <p className="text-sm text-gray-600 capitalize">{component.type.replace('-', ' ')}</p>
-                  </div>
-                </div>
-                {getStatusBadge(component.isActive)}
-              </div>
-
-              <div className="mb-4">
-                <p className="text-sm text-gray-500 mb-2">Content:</p>
-                <div className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3">
-                  {component.title && (
-                    <p className="font-medium mb-1">{component.title}</p>
-                  )}
-                  {component.subtitle && (
-                    <p className="text-gray-600 mb-1">{component.subtitle}</p>
-                  )}
-                  {component.content && (
-                    <p className="text-gray-500 text-xs italic">
-                      {component.content.length > 100 
-                        ? `${component.content.substring(0, 100)}...` 
-                        : component.content
-                      }
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
-                <span>Updated: {formatDate(component.updatedAt)}</span>
-                <span>Order: {component.order}</span>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <button className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                  <EyeIcon className="h-4 w-4 mr-2" />
-                  Preview
-                </button>
-                <button className="flex-1 inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
-                  <PencilIcon className="h-4 w-4 mr-2" />
-                  Edit
-                </button>
-                <button 
-                  onClick={() => handleDelete(component.id)}
-                  className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium"
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setShowPreview(!showPreview)}
+                className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                <EyeIcon className="h-4 w-4 mr-2" />
+                {showPreview ? 'Hide Preview' : 'Show Preview'}
+              </button>
+              {hasChanges && (
+                <button
+                  onClick={handleSaveChanges}
+                  disabled={saving}
+                  className="flex items-center px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
                 >
-                  Delete
+                  {saving ? (
+                    <ArrowPathIcon className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <SaveIcon className="h-4 w-4 mr-2" />
+                  )}
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </button>
-              </div>
-
-              <div className="mt-3 pt-3 border-t border-gray-200">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Status:</span>
-                  <select
-                    value={component.isActive.toString()}
-                    onChange={(e) => handleStatusChange(component.id, e.target.value === 'true')}
-                    className="text-sm border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="true">Active</option>
-                    <option value="false">Inactive</option>
-                  </select>
-                </div>
-              </div>
+              )}
             </div>
-          )
-        })}
+          </div>
+        </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <div className="p-2 bg-blue-100 rounded-lg mr-3">
-              <CogIcon className="h-5 w-5 text-blue-600" />
-            </div>
-            <div className="text-left">
-              <p className="font-medium text-gray-900">Global Settings</p>
-              <p className="text-sm text-gray-600">Update site-wide settings</p>
-            </div>
-          </button>
+      {/* Content */}
+      <div className="p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Components List */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-900">Homepage Components</h2>
+                <p className="text-sm text-gray-600 mt-1">Click on any component to edit its content</p>
+              </div>
+              <div className="p-6">
+                {components.length === 0 ? (
+                  <div className="text-center py-12">
+                    <DocumentTextIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">No components found</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {components
+                      .sort((a, b) => a.order - b.order)
+                      .map((component) => {
+                        const Icon = componentIcons[component.type] || DocumentTextIcon
+                        const colorClass = componentColors[component.type] || 'bg-gray-50 text-gray-600 border-gray-200'
+                        
+                        return (
+                          <div
+                            key={component.id}
+                            className={`border rounded-xl p-4 transition-all duration-200 ${
+                              editingComponent === component.id 
+                                ? 'ring-2 ring-blue-500 border-blue-300' 
+                                : 'border-gray-200 hover:border-gray-300'
+                            } ${!component.isActive ? 'opacity-50' : ''}`}
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center space-x-3">
+                                <div className={`p-2 rounded-lg border ${colorClass}`}>
+                                  <Icon className="h-5 w-5" />
+                                </div>
+                                <div>
+                                  <h3 className="font-medium text-gray-900">{component.name}</h3>
+                                  <p className="text-sm text-gray-600">Type: {component.type}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={() => handleReorder(component.id, 'up')}
+                                  className="p-1 text-gray-400 hover:text-gray-600"
+                                  title="Move up"
+                                >
+                                  <ChevronUpIcon className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleReorder(component.id, 'down')}
+                                  className="p-1 text-gray-400 hover:text-gray-600"
+                                  title="Move down"
+                                >
+                                  <ChevronDownIcon className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => setEditingComponent(
+                                    editingComponent === component.id ? null : component.id
+                                  )}
+                                  className="p-1 text-gray-400 hover:text-blue-600"
+                                  title="Edit component"
+                                >
+                                  <PencilIcon className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleToggleActive(component.id)}
+                                  className={`p-1 ${component.isActive ? 'text-green-600' : 'text-gray-400'}`}
+                                  title={component.isActive ? 'Deactivate' : 'Activate'}
+                                >
+                                  <CheckIcon className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
 
-          <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <div className="p-2 bg-green-100 rounded-lg mr-3">
-              <MegaphoneIcon className="h-5 w-5 text-green-600" />
-            </div>
-            <div className="text-left">
-              <p className="font-medium text-gray-900">Announcements</p>
-              <p className="text-sm text-gray-600">Manage site announcements</p>
-            </div>
-          </button>
+                            {/* Component Content Preview */}
+                            <div className="text-sm text-gray-600 space-y-1">
+                              {component.title && <p><strong>Title:</strong> {component.title}</p>}
+                              {component.subtitle && <p><strong>Subtitle:</strong> {component.subtitle}</p>}
+                              {component.content && <p><strong>Content:</strong> {component.content.substring(0, 100)}...</p>}
+                              {component.ctaText && <p><strong>CTA:</strong> {component.ctaText}</p>}
+                            </div>
 
-          <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <div className="p-2 bg-purple-100 rounded-lg mr-3">
-              <EyeIcon className="h-5 w-5 text-purple-600" />
+                            {/* Edit Form */}
+                            {editingComponent === component.id && (
+                              <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                                    <input
+                                      type="text"
+                                      value={component.title || ''}
+                                      onChange={(e) => handleComponentUpdate(component.id, 'title', e.target.value)}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Subtitle</label>
+                                    <input
+                                      type="text"
+                                      value={component.subtitle || ''}
+                                      onChange={(e) => handleComponentUpdate(component.id, 'subtitle', e.target.value)}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">Content</label>
+                                  <textarea
+                                    value={component.content || ''}
+                                    onChange={(e) => handleComponentUpdate(component.id, 'content', e.target.value)}
+                                    rows={3}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                  />
+                                </div>
+
+                                {/* CTA Buttons */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">CTA 1 Text</label>
+                                    <input
+                                      type="text"
+                                      value={component.ctaText || ''}
+                                      onChange={(e) => handleComponentUpdate(component.id, 'ctaText', e.target.value)}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">CTA 2 Text</label>
+                                    <input
+                                      type="text"
+                                      value={component.cta2Text || ''}
+                                      onChange={(e) => handleComponentUpdate(component.id, 'cta2Text', e.target.value)}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">CTA 3 Text</label>
+                                    <input
+                                      type="text"
+                                      value={component.cta3Text || ''}
+                                      onChange={(e) => handleComponentUpdate(component.id, 'cta3Text', e.target.value)}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="flex justify-end space-x-2">
+                                  <button
+                                    onClick={() => setEditingComponent(null)}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="text-left">
-              <p className="font-medium text-gray-900">Live Preview</p>
-              <p className="text-sm text-gray-600">See changes in real-time</p>
+          </div>
+
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
+              </div>
+              <div className="p-6 space-y-4">
+                <button
+                  onClick={fetchComponents}
+                  className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  <ArrowPathIcon className="h-4 w-4 mr-2" />
+                  Refresh Components
+                </button>
+                
+                <button
+                  onClick={() => setShowPreview(!showPreview)}
+                  className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                >
+                  <EyeIcon className="h-4 w-4 mr-2" />
+                  {showPreview ? 'Hide Preview' : 'Show Preview'}
+                </button>
+
+                {hasChanges && (
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      You have unsaved changes. Click "Save Changes" to persist them.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
-          </button>
+          </div>
         </div>
       </div>
     </div>

@@ -26,9 +26,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, color: 'text-blue-600', bgColor: 'bg-blue-50' },
   { name: 'Website Overview', href: '/dashboard/website-overview', icon: GlobeAltIcon, color: 'text-purple-600', bgColor: 'bg-purple-50' },
   { name: 'Pages Management', href: '/dashboard/pages-management', icon: ClipboardDocumentListIcon, color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
-  { name: 'Homepage Editor', href: '/dashboard/homepage-editor', icon: SparklesIcon, color: 'text-pink-600', bgColor: 'bg-pink-50' },
   { name: 'Homepage', href: '/dashboard/homepage', icon: SparklesIcon, color: 'text-pink-600', bgColor: 'bg-pink-50' },
-  { name: 'Hero Section', href: '/dashboard/hero', icon: PlayIcon, color: 'text-red-600', bgColor: 'bg-red-50' },
   { name: 'News & Events', href: '/dashboard/news', icon: NewspaperIcon, color: 'text-green-600', bgColor: 'bg-green-50' },
   { name: 'Programs', href: '/dashboard/programs', icon: AcademicCapIcon, color: 'text-orange-600', bgColor: 'bg-orange-50' },
   { name: 'Departments', href: '/dashboard/departments', icon: BuildingOfficeIcon, color: 'text-yellow-600', bgColor: 'bg-yellow-50' },
@@ -87,7 +85,7 @@ export default function DashboardLayout({
 
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-80 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 lg:flex-shrink-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-80 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 lg:flex-shrink-0 lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >

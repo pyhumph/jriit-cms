@@ -10,14 +10,11 @@ import {
   ArrowPathIcon,
   CheckIcon,
   XMarkIcon,
-  PlusIcon,
   TrashIcon,
   PhotoIcon,
-  VideoCameraIcon,
   DocumentTextIcon,
   LinkIcon,
-  CogIcon,
-  SaveIcon
+  CogIcon
 } from '@heroicons/react/24/outline'
 
 interface HomepageComponent {
@@ -127,7 +124,7 @@ export default function HomepageEditor() {
     }
   }
 
-  const handleComponentChange = (id: string, field: keyof HomepageComponent, value: any) => {
+  const handleComponentChange = (id: string, field: keyof HomepageComponent, value: string | number | boolean) => {
     setComponents(prev => 
       prev.map(comp => 
         comp.id === id 
@@ -146,7 +143,7 @@ export default function HomepageEditor() {
     setEditingComponent(null)
   }
 
-  const handleSaveComponent = (id: string) => {
+  const handleSaveComponent = () => {
     setEditingComponent(null)
     // Component is already updated in state
   }
@@ -266,7 +263,7 @@ export default function HomepageEditor() {
               {saving ? (
                 <ArrowPathIcon className="h-4 w-4 mr-2 animate-spin" />
               ) : (
-                <SaveIcon className="h-4 w-4 mr-2" />
+                <CheckIcon className="h-4 w-4 mr-2" />
               )}
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
@@ -328,7 +325,7 @@ export default function HomepageEditor() {
                     {isEditing ? (
                       <div className="flex space-x-2">
                         <button
-                          onClick={() => handleSaveComponent(component.id)}
+                          onClick={handleSaveComponent}
                           className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
                         >
                           <CheckIcon className="h-4 w-4" />

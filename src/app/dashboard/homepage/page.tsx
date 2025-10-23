@@ -18,7 +18,6 @@ import {
   CheckIcon,
   ChevronUpIcon,
   ChevronDownIcon,
-  SaveIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline'
 
@@ -214,7 +213,7 @@ export default function HomepagePage() {
                   {saving ? (
                     <ArrowPathIcon className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
-                    <SaveIcon className="h-4 w-4 mr-2" />
+                    <CheckIcon className="h-4 w-4 mr-2" />
                   )}
                   {saving ? 'Saving...' : 'Save Changes'}
                 </button>

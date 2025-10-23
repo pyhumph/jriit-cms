@@ -60,8 +60,6 @@ export async function POST(request: NextRequest) {
       })
     )
 
-    await prisma.$disconnect()
-
     return NextResponse.json({
       success: true,
       message: 'Homepage components saved successfully',
@@ -71,10 +69,11 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error saving homepage components:', error)
-    await prisma.$disconnect()
     return NextResponse.json(
       { success: false, error: 'Failed to save homepage components' },
       { status: 500 }
     )
+  } finally {
+    await prisma.$disconnect()
   }
 }

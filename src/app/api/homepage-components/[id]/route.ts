@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 
+const serializeSettings = (value: unknown) => {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'string') return value
+  try {
+    return JSON.stringify(value)
+  } catch (error) {
+    console.warn('Failed to serialise homepage component settings.', error)
+    return JSON.stringify(String(value))
+  }
+}
+
 // GET /api/homepage-components/[id] - Get specific homepage component
 export async function GET(
   request: NextRequest,
@@ -63,6 +74,10 @@ export async function PUT(
       mediaUrl,
       ctaText,
       ctaLink,
+      cta2Text,
+      cta2Link,
+      cta3Text,
+      cta3Link,
       isActive,
       order,
       settings
@@ -80,22 +95,30 @@ export async function PUT(
       )
     }
 
+    const updateData: Record<string, unknown> = {}
+
+    if (name !== undefined) updateData.name = name
+    if (type !== undefined) updateData.type = type
+    if (title !== undefined) updateData.title = title
+    if (subtitle !== undefined) updateData.subtitle = subtitle
+    if (content !== undefined) updateData.content = content
+    if (mediaType !== undefined) updateData.mediaType = mediaType
+    if (mediaUrl !== undefined) updateData.mediaUrl = mediaUrl
+    if (ctaText !== undefined) updateData.ctaText = ctaText
+    if (ctaLink !== undefined) updateData.ctaLink = ctaLink
+    if (cta2Text !== undefined) updateData.cta2Text = cta2Text
+    if (cta2Link !== undefined) updateData.cta2Link = cta2Link
+    if (cta3Text !== undefined) updateData.cta3Text = cta3Text
+    if (cta3Link !== undefined) updateData.cta3Link = cta3Link
+    if (isActive !== undefined) updateData.isActive = isActive
+    if (order !== undefined) updateData.order = order
+    if (settings !== undefined) updateData.settings = serializeSettings(settings)
+
+    console.log('API: Updating homepage component', params.id, updateData)
+
     const component = await prisma.homepageComponent.update({
       where: { id: params.id },
-      data: {
-        name,
-        type,
-        title,
-        subtitle,
-        content,
-        mediaType,
-        mediaUrl,
-        ctaText,
-        ctaLink,
-        isActive,
-        order,
-        settings: settings ? JSON.stringify(settings) : null
-      },
+      data: updateData,
       include: {
         author: {
           select: {
@@ -114,7 +137,10 @@ export async function PUT(
   } catch (error) {
     console.error('Error updating homepage component:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to update homepage component' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to update homepage component'
+      },
       { status: 500 }
     )
   }
@@ -159,4 +185,6 @@ export async function DELETE(
     )
   }
 }
+
+
 

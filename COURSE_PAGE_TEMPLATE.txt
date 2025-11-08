@@ -1,0 +1,43 @@
+COURSE_CONFIGS = {
+  'travel-tourism-management': {
+    'name': 'Travel & Tourism',
+    'header': {'title': 'Travel &', 'subtitle': 'Tourism', 'content': 'Explore. Discover. Journey.'},
+    'career-skills': {
+      'title': 'TOURISM-READY SKILLS? CHECK.',
+      'content': "In Travel & Tourism Management at JRIIT, you'll gain expertise in hospitality, travel planning, destination management, and customer service. Our program covers tourism marketing, event management, cultural tourism, and sustainable tourism practices. These are the skills that make JRIIT tourism graduates excel in the global hospitality industry.\n\nWhy? We emphasize hands-on experience with real-world tourism scenarios. You'll receive detailed feedback on your customer service skills and tourism management strategies, giving you a complete understanding of your professional development.\n\nDiscover our tourism programs below and unlock the skills to create memorable travel experiences."
+    }
+  },
+  'computer-science': {
+    'name': 'Computer Science',
+    'header': {'title': 'Computer', 'subtitle': 'Science', 'content': 'Code. Innovate. Transform.'},
+    'career-skills': {
+      'title': 'CS-READY SKILLS? CHECK.',
+      'content': "In Computer Science at JRIIT, you'll master fundamental programming concepts, algorithms, data structures, and software engineering principles. Our program covers software development, database systems, artificial intelligence, and computer networks. These are the skills that make JRIIT computer science graduates leaders in technology innovation.\n\nWhy? We emphasize practical coding projects and real-world software development. You'll receive detailed feedback on your programming skills and problem-solving approaches, giving you a comprehensive understanding of your technical growth.\n\nDiscover our computer science programs below and unlock the skills to build the future."
+    }
+  },
+  'computer-engineering': {
+    'name': 'Computer Engineering',
+    'header': {'title': 'Computer', 'subtitle': 'Engineering', 'content': 'Design. Build. Engineer.'},
+    'career-skills': {
+      'title': 'ENGINEERING-READY SKILLS? CHECK.',
+      'content': "In Computer Engineering at JRIIT, you'll learn to design and develop computer systems, embedded systems, and hardware-software integration. Our program covers digital systems design, microprocessors, computer architecture, and system programming. These are the skills that make JRIIT engineering graduates excel in hardware and software development.\n\nWhy? We emphasize hands-on engineering projects and system design. You'll receive detailed feedback on your engineering solutions and technical designs, giving you a complete understanding of your engineering capabilities.\n\nDiscover our engineering programs below and unlock the skills to engineer innovative solutions."
+    }
+  },
+  'electronics-telecommunications': {
+    'name': 'Electronics & Telecommunications',
+    'header': {'title': 'Electronics &', 'subtitle': 'Telecommunications', 'content': 'Connect. Transmit. Communicate.'},
+    'career-skills': {
+      'title': 'TELECOM-READY SKILLS? CHECK.',
+      'content': "In Electronics & Telecommunications at JRIIT, you'll gain expertise in electronic circuits, communication systems, signal processing, and network technologies. Our program covers analog and digital electronics, wireless communications, fiber optics, and network protocols. These are the skills that make JRIIT telecom graduates leaders in communication technology.\n\nWhy? We emphasize practical electronics projects and communication system design. You'll receive detailed feedback on your technical skills and system implementations, giving you a comprehensive understanding of your professional development.\n\nDiscover our telecommunications programs below and unlock the skills to connect the world."
+    }
+  },
+  'accountancy': {
+    'name': 'Accountancy',
+    'header': {'title': 'Accountancy', 'subtitle': 'Finance', 'content': 'Count. Analyze. Succeed.'},
+    'career-skills': {
+      'title': 'ACCOUNTING-READY SKILLS? CHECK.',
+      'content': "In Accountancy at JRIIT, you'll master financial accounting, auditing, taxation, and financial management. Our program covers accounting principles, financial reporting, cost accounting, and business law. These are the skills that make JRIIT accounting graduates highly valued in finance and business sectors.\n\nWhy? We emphasize practical accounting scenarios and real-world financial analysis. You'll receive detailed feedback on your accounting skills and financial analysis techniques, giving you a complete understanding of your professional growth.\n\nDiscover our accountancy programs below and unlock the skills to excel in finance."
+    }
+  }
+}
+

@@ -67,43 +67,158 @@ const initialSlides: HeroSlide[] = [
 ]
 
 export default function HeroManagement() {
-  const [slides, setSlides] = useState<HeroSlide[]>(initialSlides)
+  const [slides, setSlides] = useState<HeroSlide[]>([])
   const [editingSlide, setEditingSlide] = useState<HeroSlide | null>(null)
   const [showPreview, setShowPreview] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [initialLoading, setInitialLoading] = useState(true)
+
+  // Load slides from database on component mount
+  useEffect(() => {
+    fetchSlides()
+  }, [])
+
+  const fetchSlides = async () => {
+    try {
+      setInitialLoading(true)
+      console.log('🔄 Loading hero slides from database...')
+      
+      const response = await fetch('/api/hero-slides')
+      const data = await response.json()
+      
+      console.log('📊 Database response:', data)
+      
+      if (data.success && data.slides) {
+        console.log('✅ Loaded hero slides from database:', data.slides.length)
+        setSlides(data.slides)
+      } else {
+        console.log('⚠️ No slides in database, using initial slides')
+        setSlides(initialSlides)
+      }
+    } catch (error) {
+      console.error('💥 Error loading hero slides:', error)
+      console.log('🔄 Falling back to initial slides')
+      setSlides(initialSlides)
+    } finally {
+      setInitialLoading(false)
+    }
+  }
 
   const handleSave = async (slide: HeroSlide) => {
     setLoading(true)
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
     
-    if (editingSlide) {
-      setSlides(prev => prev.map(s => s.id === slide.id ? slide : s))
-    } else {
-      setSlides(prev => [...prev, { ...slide, id: Date.now().toString() }])
-    }
-    
-    setEditingSlide(null)
-    setLoading(false)
-  }
-
-  const handleDelete = (id: string) => {
-    setSlides(prev => prev.filter(s => s.id !== id))
-  }
-
-  const handleReorder = (id: string, direction: 'up' | 'down') => {
-    setSlides(prev => {
-      const sorted = [...prev].sort((a, b) => a.order - b.order)
-      const index = sorted.findIndex(s => s.id === id)
+    try {
+      console.log('🚀 Starting hero slide save operation...', slide)
       
-      if (direction === 'up' && index > 0) {
-        [sorted[index], sorted[index - 1]] = [sorted[index - 1], sorted[index]]
-      } else if (direction === 'down' && index < sorted.length - 1) {
-        [sorted[index], sorted[index + 1]] = [sorted[index + 1], sorted[index]]
+      let response
+      if (editingSlide && editingSlide.id) {
+        // Update existing slide
+        console.log('📝 Updating existing hero slide:', editingSlide.id)
+        response = await fetch(`/api/hero-slides/${editingSlide.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(slide),
+        })
+      } else {
+        // Create new slide
+        console.log('➕ Creating new hero slide')
+        response = await fetch('/api/hero-slides', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(slide),
+        })
       }
+
+      const data = await response.json()
+      console.log('📊 API Response:', data)
+
+      if (data.success) {
+        console.log('✅ Hero slide saved successfully to database!')
+        
+        // Update local state with the saved slide (including the database ID)
+        if (editingSlide && editingSlide.id) {
+          setSlides(prev => prev.map(s => s.id === slide.id ? { ...slide, id: data.slide.id } : s))
+        } else {
+          setSlides(prev => [...prev, { ...slide, id: data.slide.id }])
+        }
+        
+        setEditingSlide(null)
+        alert('Hero slide saved successfully!')
+      } else {
+        console.error('❌ Failed to save hero slide:', data.error)
+        alert('Failed to save hero slide: ' + data.error)
+      }
+    } catch (error) {
+      console.error('💥 Error saving hero slide:', error)
+      alert('Error saving hero slide. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    try {
+      console.log('🗑️ Deleting hero slide:', id)
       
-      return sorted.map((slide, i) => ({ ...slide, order: i + 1 }))
-    })
+      const response = await fetch(`/api/hero-slides/${id}`, {
+        method: 'DELETE',
+      })
+      
+      const data = await response.json()
+      console.log('📊 Delete response:', data)
+      
+      if (data.success) {
+        console.log('✅ Hero slide deleted from database!')
+        setSlides(prev => prev.filter(s => s.id !== id))
+        alert('Hero slide deleted successfully!')
+      } else {
+        console.error('❌ Failed to delete hero slide:', data.error)
+        alert('Failed to delete hero slide: ' + data.error)
+      }
+    } catch (error) {
+      console.error('💥 Error deleting hero slide:', error)
+      alert('Error deleting hero slide. Please try again.')
+    }
+  }
+
+  const handleReorder = async (id: string, direction: 'up' | 'down') => {
+    try {
+      setSlides(prev => {
+        const sorted = [...prev].sort((a, b) => a.order - b.order)
+        const index = sorted.findIndex(s => s.id === id)
+        
+        if (direction === 'up' && index > 0) {
+          [sorted[index], sorted[index - 1]] = [sorted[index - 1], sorted[index]]
+        } else if (direction === 'down' && index < sorted.length - 1) {
+          [sorted[index], sorted[index + 1]] = [sorted[index + 1], sorted[index]]
+        }
+        
+        const updatedSlides = sorted.map((slide, i) => ({ ...slide, order: i + 1 }))
+        
+        // Update each slide's order in the database
+        updatedSlides.forEach(async (slide) => {
+          try {
+            await fetch(`/api/hero-slides/${slide.id}`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ order: slide.order }),
+            })
+          } catch (error) {
+            console.error('Error updating slide order:', error)
+          }
+        })
+        
+        return updatedSlides
+      })
+    } catch (error) {
+      console.error('Error reordering slides:', error)
+    }
   }
 
   const toggleActive = (id: string) => {
@@ -416,6 +531,8 @@ export default function HeroManagement() {
     </div>
   )
 }
+
+
 
 
 

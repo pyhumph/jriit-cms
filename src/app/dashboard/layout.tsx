@@ -16,11 +16,23 @@ import {
   BuildingOfficeIcon,
   UserGroupIcon,
   SparklesIcon,
-  PlayIcon,
   GlobeAltIcon,
-  ClipboardDocumentListIcon
+  ClipboardDocumentListIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  BookOpenIcon
 } from '@heroicons/react/24/outline'
 import { ThemeToggle } from '@/components/ThemeToggle'
+
+// Define available courses
+const courses = [
+  { name: 'Information Technology', slug: 'information-technology', icon: '💻' },
+  { name: 'Cyber Security', slug: 'cyber-security', icon: '🔒' },
+  { name: 'Business Administration', slug: 'business-administration', icon: '📊' },
+  { name: 'Travel & Tourism', slug: 'travel-tourism-management', icon: '✈️' },
+  { name: 'Professional Course', slug: 'professional-course', icon: '🎓' },
+  { name: 'Short Course', slug: 'short-course', icon: '📚' },
+]
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, color: 'text-blue-600', bgColor: 'bg-blue-50' },
@@ -44,6 +56,7 @@ export default function DashboardLayout({
   const router = useRouter()
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [coursesOpen, setCoursesOpen] = useState(false)
 
   useEffect(() => {
     if (status === 'loading') return
@@ -51,6 +64,13 @@ export default function DashboardLayout({
       router.push('/login')
     }
   }, [session, status, router])
+
+  // Auto-open courses dropdown if on a course page
+  useEffect(() => {
+    if (pathname.startsWith('/dashboard/courses/')) {
+      setCoursesOpen(true)
+    }
+  }, [pathname])
 
   if (status === 'loading') {
     return (
@@ -132,6 +152,66 @@ export default function DashboardLayout({
                 </Link>
               )
             })}
+
+            {/* Courses Dropdown */}
+            <div className="mt-2">
+              <button
+                onClick={() => setCoursesOpen(!coursesOpen)}
+                className={`group w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
+                  pathname.startsWith('/dashboard/courses/')
+                    ? 'bg-emerald-50 text-emerald-600 shadow-md'
+                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                }`}
+              >
+                <div className="flex items-center">
+                  <BookOpenIcon className={`h-5 w-5 mr-3 ${
+                    pathname.startsWith('/dashboard/courses/')
+                      ? 'text-emerald-600'
+                      : 'text-gray-400 group-hover:text-gray-600'
+                  }`} />
+                  Courses
+                </div>
+                {pathname.startsWith('/dashboard/courses/') && (
+                  <div className="ml-auto mr-2 h-2 w-2 bg-current rounded-full"></div>
+                )}
+                {coursesOpen ? (
+                  <ChevronDownIcon className="h-4 w-4 text-gray-400" />
+                ) : (
+                  <ChevronRightIcon className="h-4 w-4 text-gray-400" />
+                )}
+              </button>
+
+              {/* Courses Dropdown Menu */}
+              {coursesOpen && (
+                <div className="mt-1 ml-4 space-y-1 border-l-2 border-gray-200 pl-4">
+                  {courses.map((course) => {
+                    const courseHref = `/dashboard/courses/${course.slug}`
+                    const isCourseActive = pathname === courseHref
+                    return (
+                      <Link
+                        key={course.slug}
+                        href={courseHref}
+                        className={`group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                          isCourseActive
+                            ? 'bg-emerald-100 text-emerald-700 font-semibold'
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        }`}
+                        onClick={() => {
+                          setSidebarOpen(false)
+                          setCoursesOpen(false)
+                        }}
+                      >
+                        <span className="mr-2 text-base">{course.icon}</span>
+                        <span className="flex-1">{course.name}</span>
+                        {isCourseActive && (
+                          <div className="ml-2 h-1.5 w-1.5 bg-emerald-600 rounded-full"></div>
+                        )}
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* User Section */}
@@ -171,7 +251,10 @@ export default function DashboardLayout({
               </button>
               <div className="ml-4 lg:ml-0">
                 <h2 className="text-lg font-semibold text-gray-900">
-                  {navigation.find(item => item.href === pathname)?.name || 'Dashboard'}
+                  {navigation.find(item => item.href === pathname)?.name || 
+                   (pathname.startsWith('/dashboard/courses/') 
+                     ? courses.find(c => pathname === `/dashboard/courses/${c.slug}`)?.name || 'Course Page'
+                     : 'Dashboard')}
                 </h2>
                 <p className="text-sm text-gray-500">Manage your website content</p>
               </div>

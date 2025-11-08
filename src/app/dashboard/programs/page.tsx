@@ -67,6 +67,7 @@ export default function ProgramsPage() {
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterDepartment, setFilterDepartment] = useState('all')
   const [sortBy, setSortBy] = useState('name')
+  const [departments, setDepartments] = useState<Array<{ id: string; name: string }>>([])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -76,13 +77,26 @@ export default function ProgramsPage() {
 
     if (session) {
       fetchPrograms()
+      fetchDepartments()
     }
   }, [session, status, router])
+
+  const fetchDepartments = async () => {
+    try {
+      const response = await fetch('/api/departments')
+      if (response.ok) {
+        const data = await response.json()
+        setDepartments(data.map((dept: any) => ({ id: dept.id, name: dept.name })))
+      }
+    } catch (error) {
+      console.error('Error fetching departments:', error)
+    }
+  }
 
   const fetchPrograms = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/programs')
+      const response = await fetch('/api/programs?limit=1000') // Get all programs
       if (response.ok) {
         const data = await response.json()
         setPrograms(data.programs || [])
@@ -91,9 +105,9 @@ export default function ProgramsPage() {
         const total = data.programs?.length || 0
         const active = data.programs?.filter((program: Program) => program.isActive).length || 0
         const featured = data.programs?.filter((program: Program) => program.isFeatured).length || 0
-        const departments = new Set(data.programs?.map((program: Program) => program.department.id) || []).size
+        const deptCount = new Set(data.programs?.map((program: Program) => program.department?.id).filter(Boolean) || []).size
         
-        setStats({ total, active, featured, departments })
+        setStats({ total, active, featured, departments: deptCount })
       }
     } catch (error) {
       console.error('Error fetching programs:', error)
@@ -121,19 +135,31 @@ export default function ProgramsPage() {
 
   const filteredPrograms = programs.filter(program => {
     const matchesSearch = program.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         program.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         program.degree.toLowerCase().includes(searchTerm.toLowerCase())
+                         (program.description?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+                         (program.degree?.toLowerCase().includes(searchTerm.toLowerCase()) || false)
     const matchesStatus = filterStatus === 'all' || 
                          (filterStatus === 'active' && program.isActive) ||
                          (filterStatus === 'inactive' && !program.isActive)
-    const matchesDepartment = filterDepartment === 'all' || program.department.id === filterDepartment
+    const matchesDepartment = filterDepartment === 'all' || program.department?.id === filterDepartment
     
     return matchesSearch && matchesStatus && matchesDepartment
+  }).sort((a, b) => {
+    switch (sortBy) {
+      case 'name':
+        return a.name.localeCompare(b.name)
+      case 'degree':
+        return (a.degree || '').localeCompare(b.degree || '')
+      case 'department':
+        return (a.department?.name || '').localeCompare(b.department?.name || '')
+      case 'duration':
+        return (a.duration || '').localeCompare(b.duration || '')
+      default:
+        return 0
+    }
   })
 
-  const uniqueDepartments = Array.from(new Set(programs.map(program => program.department.id)))
-    .map(id => programs.find(program => program.department.id === id)?.department)
-    .filter(Boolean)
+  // Get unique departments from fetched departments list
+  const uniqueDepartments = departments
 
   if (status === 'loading' || loading) {
     return (
@@ -247,14 +273,14 @@ export default function ProgramsPage() {
               <ChevronDownIcon className="h-5 w-5 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
             </div>
 
-            {/* Department Filter */}
+            {/* Course Category Filter */}
             <div className="relative">
               <select
                 value={filterDepartment}
                 onChange={(e) => setFilterDepartment(e.target.value)}
                 className="appearance-none bg-white border border-gray-200 rounded-xl px-4 py-3 pr-8 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="all">All Departments</option>
+                <option value="all">All Course Categories</option>
                 {uniqueDepartments.map((dept) => (
                   <option key={dept?.id} value={dept?.id}>
                     {dept?.name}
@@ -338,7 +364,7 @@ export default function ProgramsPage() {
                           </div>
                           <div className="flex items-center">
                             <BuildingOfficeIcon className="h-4 w-4 mr-1" />
-                            {program.department.name}
+                            {program.department?.name || 'No Category'}
                           </div>
                         </div>
                       </div>
@@ -367,13 +393,6 @@ export default function ProgramsPage() {
 
                         {/* Actions */}
                         <div className="flex space-x-2">
-                          <button
-                            onClick={() => router.push(`/dashboard/programs/${program.id}`)}
-                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="View"
-                          >
-                            <EyeIcon className="h-4 w-4" />
-                          </button>
                           <button
                             onClick={() => router.push(`/dashboard/programs/${program.id}/edit`)}
                             className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"

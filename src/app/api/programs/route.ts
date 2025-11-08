@@ -10,7 +10,9 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
     const search = searchParams.get('search') || ''
-    const department = searchParams.get('department')
+    const department = searchParams.get('department') // Can be ID
+    const departmentSlug = searchParams.get('departmentSlug') // Can be slug
+    const courseCategory = searchParams.get('courseCategory') // Can be department name
     const isActive = searchParams.get('isActive')
     const featured = searchParams.get('featured')
 
@@ -35,8 +37,27 @@ export async function GET(request: NextRequest) {
       ]
     }
     
+    // Handle department filter - can be ID, slug, or name
     if (department) {
       where.departmentId = department
+    } else if (departmentSlug) {
+      // Find department by slug first
+      const dept = await prisma.department.findUnique({
+        where: { slug: departmentSlug },
+        select: { id: true }
+      })
+      if (dept) {
+        where.departmentId = dept.id
+      }
+    } else if (courseCategory) {
+      // Find department by name
+      const dept = await prisma.department.findFirst({
+        where: { name: { equals: courseCategory, mode: 'insensitive' } },
+        select: { id: true }
+      })
+      if (dept) {
+        where.departmentId = dept.id
+      }
     }
 
     // Get programs with department info
@@ -144,7 +165,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating program:', error)
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
+      return NextResponse.json({ error: 'Validation error', details: error.issues }, { status: 400 })
     }
     return NextResponse.json(
       { error: 'Internal server error' },

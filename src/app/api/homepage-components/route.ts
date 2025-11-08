@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 
+const serializeSettings = (value: unknown) => {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'string') return value
+  try {
+    return JSON.stringify(value)
+  } catch (error) {
+    console.warn('Failed to serialise homepage component settings.', error)
+    return JSON.stringify(String(value))
+  }
+}
+
 // GET /api/homepage-components - Get all homepage components
 export async function GET(request: NextRequest) {
   try {
@@ -66,6 +77,10 @@ export async function POST(request: NextRequest) {
       mediaUrl,
       ctaText,
       ctaLink,
+      cta2Text,
+      cta2Link,
+      cta3Text,
+      cta3Link,
       isActive = true,
       order = 0,
       settings
@@ -90,9 +105,13 @@ export async function POST(request: NextRequest) {
         mediaUrl,
         ctaText,
         ctaLink,
+        cta2Text,
+        cta2Link,
+        cta3Text,
+        cta3Link,
         isActive,
         order,
-        settings: settings ? JSON.stringify(settings) : null,
+        settings: serializeSettings(settings),
         authorId: session.user.id
       },
       include: {

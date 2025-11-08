@@ -92,71 +92,149 @@ export default function HomepagePage() {
   const [editingComponent, setEditingComponent] = useState<string | null>(null)
   const [hasChanges, setHasChanges] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [dirtyIds, setDirtyIds] = useState<string[]>([])
+  const [status, setStatus] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null)
+
+  useEffect(() => {
+    if (!status) return
+    const timer = setTimeout(() => setStatus(null), 4000)
+    return () => clearTimeout(timer)
+  }, [status])
 
   useEffect(() => {
     fetchComponents()
   }, [])
 
+  const parseSettings = (value?: string | null) => {
+    if (!value) return null
+    try {
+      return JSON.parse(value)
+    } catch (error) {
+      console.warn('Unable to parse component settings. Sending raw string.', error)
+      return value
+    }
+  }
+
+  const markDirty = (ids: string | string[]) => {
+    setDirtyIds(prev => {
+      const next = new Set(prev)
+      ;(Array.isArray(ids) ? ids : [ids]).forEach(id => next.add(id))
+      return Array.from(next)
+    })
+    setHasChanges(true)
+  }
+
+  const serializeComponent = (component: HomepageComponent) => ({
+    name: component.name,
+    type: component.type,
+    title: component.title ?? '',
+    subtitle: component.subtitle ?? '',
+    content: component.content ?? '',
+    mediaType: component.mediaType ?? '',
+    mediaUrl: component.mediaUrl ?? '',
+    ctaText: component.ctaText ?? '',
+    ctaLink: component.ctaLink ?? '',
+    cta2Text: component.cta2Text ?? '',
+    cta2Link: component.cta2Link ?? '',
+    cta3Text: component.cta3Text ?? '',
+    cta3Link: component.cta3Link ?? '',
+    isActive: component.isActive,
+    order: component.order,
+    settings: parseSettings(component.settings)
+  })
+
   const fetchComponents = async () => {
     try {
       setLoading(true)
-      
-      // Try the comprehensive API that fetches ALL homepage components
-      let response = await fetch('/api/fetch-all-homepage-components')
-      let data = await response.json()
-      
-      // If comprehensive API fails, try the basic real content API
-      if (!data.success) {
-        console.log('Comprehensive API failed, trying basic real content API...')
-        response = await fetch('/api/fetch-real-content?type=all')
-        data = await response.json()
-      }
-      
-      // If basic API also fails, try the mock API
-      if (!data.success) {
-        console.log('Basic real content API failed, trying mock API...')
-        response = await fetch('/api/website-content-mock?type=all')
-        data = await response.json()
-      }
-      
-      if (data.success) {
+      const response = await fetch('/api/homepage-components')
+      const data = await response.json()
+      if (data.success && data.components) {
         setComponents(data.components)
-        console.log('Fetched ALL homepage components:', data.components.length)
-        console.log('Components found:', data.components.map(c => c.name).join(', '))
+        setDirtyIds([])
+        setHasChanges(false)
+        setStatus({ type: 'success', message: `Loaded ${data.components.length} homepage components.` })
       } else {
-        console.error('Failed to fetch components:', data.error)
+        const fallbackResponse = await fetch('/api/fetch-all-homepage-components')
+        const fallbackData = await fallbackResponse.json()
+        if (fallbackData.success) {
+          setComponents(fallbackData.components)
+          setStatus({ type: 'info', message: 'Using scraped homepage data as a temporary fallback.' })
+        }
       }
     } catch (error) {
-      console.error('Error fetching components:', error)
+      console.error('Error fetching homepage components:', error)
+      setStatus({ type: 'error', message: 'Failed to load homepage components. Please try again.' })
     } finally {
       setLoading(false)
     }
   }
 
   const handleSaveChanges = async () => {
+    if (saving) return
+    const idsToSave = dirtyIds.length ? dirtyIds : components.map(component => component.id)
+    const payload = components.filter(component => idsToSave.includes(component.id))
+
+    if (payload.length === 0) {
+      setStatus({ type: 'info', message: 'No changes to save.' })
+      return
+    }
+
     try {
       setSaving(true)
-      const response = await fetch('/api/homepage-components/save', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ components }),
+      setStatus({ type: 'info', message: 'Saving homepage changes…' })
+
+      const results = await Promise.allSettled(
+        payload.map(async (component) => {
+          const response = await fetch(`/api/homepage-components/${component.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(serializeComponent(component))
+          })
+
+          if (!response.ok) {
+            let errorMessage = 'Failed to save component.'
+            try {
+              const errorBody = await response.json()
+              errorMessage = errorBody.error ?? errorMessage
+            } catch (err) {
+              console.warn('Unable to parse error response', err)
+            }
+            throw new Error(errorMessage)
+          }
+
+          return component.id
+        })
+      )
+
+      const failedIds: string[] = []
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          failedIds.push(payload[index].id)
+        }
       })
 
-      const data = await response.json()
-
-      if (data.success) {
+      if (failedIds.length) {
+        setDirtyIds(failedIds)
+        setHasChanges(true)
+        setStatus({
+          type: 'error',
+          message: `Failed to save ${failedIds.length} of ${payload.length} components. Please try again.`
+        })
+      } else {
+        setDirtyIds([])
         setHasChanges(false)
         setEditingComponent(null)
-        // Show success message
-        alert('Changes saved successfully!')
-      } else {
-        alert('Failed to save changes: ' + data.error)
+        setStatus({ type: 'success', message: 'Homepage components updated successfully.' })
+      }
+
+      if (failedIds.length !== payload.length) {
+        await fetchComponents()
       }
     } catch (error) {
-      console.error('Error saving components:', error)
-      alert('Failed to save changes')
+      console.error('Error saving homepage components:', error)
+      setStatus({ type: 'error', message: 'An unexpected error occurred while saving changes.' })
     } finally {
       setSaving(false)
     }
@@ -166,7 +244,7 @@ export default function HomepagePage() {
     setComponents(prev => prev.map(comp => 
       comp.id === id ? { ...comp, [field]: value } : comp
     ))
-    setHasChanges(true)
+    markDirty(id)
   }
 
   const handleReorder = (id: string, direction: 'up' | 'down') => {
@@ -181,16 +259,17 @@ export default function HomepagePage() {
       }
       
       // Update order values
-      return sorted.map((comp, idx) => ({ ...comp, order: idx + 1 }))
+      const updated = sorted.map((comp, idx) => ({ ...comp, order: idx + 1 }))
+      markDirty(updated.map(comp => comp.id))
+      return updated
     })
-    setHasChanges(true)
   }
 
   const handleToggleActive = (id: string) => {
     setComponents(prev => prev.map(comp => 
       comp.id === id ? { ...comp, isActive: !comp.isActive } : comp
     ))
-    setHasChanges(true)
+    markDirty(id)
   }
 
   if (loading) {
@@ -238,6 +317,19 @@ export default function HomepagePage() {
               )}
             </div>
           </div>
+          {status && (
+            <div
+              className={`mt-4 rounded-lg border px-4 py-3 text-sm ${
+                status.type === 'success'
+                  ? 'bg-green-50 border-green-200 text-green-700'
+                  : status.type === 'error'
+                    ? 'bg-red-50 border-red-200 text-red-700'
+                    : 'bg-blue-50 border-blue-200 text-blue-700'
+              }`}
+            >
+              <p className="font-medium">{status.message}</p>
+            </div>
+          )}
         </div>
       </div>
 

@@ -56,6 +56,13 @@ export async function GET(
     console.log('  learningItems:', program.learningItems ? `HAS_CONTENT (${program.learningItems.length} chars)` : 'NULL')
     console.log('  modules:', program.modules ? `HAS_CONTENT (${program.modules.length} chars)` : 'NULL')
     console.log('  customContent:', program.customContent ? `HAS_CONTENT (${program.customContent.length} chars)` : 'NULL')
+    console.log('  heroApplications:', program.heroApplications ? `HAS_CONTENT (${program.heroApplications.length} chars)` : 'NULL')
+    console.log('  applicationCards:', program.applicationCards ? `HAS_CONTENT (${program.applicationCards.length} chars)` : 'NULL')
+    console.log('  learningLevels:', program.learningLevels ? `HAS_CONTENT (${program.learningLevels.length} chars)` : 'NULL')
+    console.log('  suiteTitle:', program.suiteTitle || 'NULL')
+    console.log('  suiteDescription:', program.suiteDescription ? `HAS_CONTENT (${program.suiteDescription.length} chars)` : 'NULL')
+    console.log('  learningPathTitle:', program.learningPathTitle || 'NULL')
+    console.log('  learningPathDesc:', program.learningPathDesc ? `HAS_CONTENT (${program.learningPathDesc.length} chars)` : 'NULL')
 
     // Return program with all fields - Prisma includes all fields when using include
     return NextResponse.json({
@@ -100,6 +107,14 @@ export async function PUT(
     const body = await request.json()
     console.log('4. Body received, keys:', Object.keys(body))
     console.log('5. Body sample (first 500 chars):', JSON.stringify(body).substring(0, 500))
+    console.log('5b. Custom layout fields in body:')
+    console.log('  heroApplications:', body.heroApplications ? `HAS_CONTENT (${body.heroApplications.length} chars)` : 'MISSING')
+    console.log('  applicationCards:', body.applicationCards ? `HAS_CONTENT (${body.applicationCards.length} chars)` : 'MISSING')
+    console.log('  learningLevels:', body.learningLevels ? `HAS_CONTENT (${body.learningLevels.length} chars)` : 'MISSING')
+    console.log('  suiteTitle:', body.suiteTitle || 'MISSING')
+    console.log('  suiteDescription:', body.suiteDescription ? `HAS_CONTENT (${body.suiteDescription.length} chars)` : 'MISSING')
+    console.log('  learningPathTitle:', body.learningPathTitle || 'MISSING')
+    console.log('  learningPathDesc:', body.learningPathDesc ? `HAS_CONTENT (${body.learningPathDesc.length} chars)` : 'MISSING')
     
     const updateSchema = z.object({
       name: z.string().min(1).optional(),
@@ -139,7 +154,15 @@ export async function PUT(
       careerOpportunitiesJson: z.string().nullable().optional(), // JSON string
       ctaTitle: z.string().nullable().optional(),
       ctaDescription: z.string().nullable().optional(),
-      customContent: z.string().nullable().optional(), // JSON string
+      customContent: z.string().nullable().optional(), // JSON string (legacy)
+      // New custom layout fields
+      heroApplications: z.string().nullable().optional(), // JSON string
+      suiteTitle: z.string().nullable().optional(),
+      suiteDescription: z.string().nullable().optional(),
+      applicationCards: z.string().nullable().optional(), // JSON string
+      learningPathTitle: z.string().nullable().optional(),
+      learningPathDesc: z.string().nullable().optional(),
+      learningLevels: z.string().nullable().optional(), // JSON string
     })
 
     // Filter out undefined values and convert empty strings to null
@@ -185,6 +208,16 @@ export async function PUT(
       }
     }
 
+    console.log('6. Validated data keys:', Object.keys(validatedData))
+    console.log('6b. Custom layout fields in validatedData:')
+    console.log('  heroApplications:', validatedData.heroApplications ? `HAS_CONTENT (${validatedData.heroApplications.length} chars)` : 'MISSING')
+    console.log('  applicationCards:', validatedData.applicationCards ? `HAS_CONTENT (${validatedData.applicationCards.length} chars)` : 'MISSING')
+    console.log('  learningLevels:', validatedData.learningLevels ? `HAS_CONTENT (${validatedData.learningLevels.length} chars)` : 'MISSING')
+    console.log('  suiteTitle:', validatedData.suiteTitle || 'MISSING')
+    console.log('  suiteDescription:', validatedData.suiteDescription ? `HAS_CONTENT (${validatedData.suiteDescription.length} chars)` : 'MISSING')
+    console.log('  learningPathTitle:', validatedData.learningPathTitle || 'MISSING')
+    console.log('  learningPathDesc:', validatedData.learningPathDesc ? `HAS_CONTENT (${validatedData.learningPathDesc.length} chars)` : 'MISSING')
+
     const program = await prisma.program.update({
       where: { id },
       data: validatedData,
@@ -205,6 +238,16 @@ export async function PUT(
         },
       },
     })
+
+    console.log('7. Program updated successfully')
+    console.log('7b. Saved custom layout fields:')
+    console.log('  heroApplications:', program.heroApplications ? `HAS_CONTENT (${program.heroApplications.length} chars)` : 'NULL')
+    console.log('  applicationCards:', program.applicationCards ? `HAS_CONTENT (${program.applicationCards.length} chars)` : 'NULL')
+    console.log('  learningLevels:', program.learningLevels ? `HAS_CONTENT (${program.learningLevels.length} chars)` : 'NULL')
+    console.log('  suiteTitle:', program.suiteTitle || 'NULL')
+    console.log('  suiteDescription:', program.suiteDescription ? `HAS_CONTENT (${program.suiteDescription.length} chars)` : 'NULL')
+    console.log('  learningPathTitle:', program.learningPathTitle || 'NULL')
+    console.log('  learningPathDesc:', program.learningPathDesc ? `HAS_CONTENT (${program.learningPathDesc.length} chars)` : 'NULL')
 
     return NextResponse.json({
       success: true,

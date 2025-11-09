@@ -384,7 +384,24 @@ model Program {
 
   // Custom Layout Content (for custom-applications and custom-adobe)
   // Stores: applications array, skillLevels array, and other custom fields
-  customContent String? // JSON object for custom layout data
+  customContent String? // JSON object for custom layout data (legacy, kept for backward compatibility)
+
+  // Hero Section Applications (quick links for custom layouts)
+  heroApplications String? // JSON array: [{name, icon, slug}]
+
+  // Complete Suite Section (for custom layouts)
+  suiteTitle       String? // Section title (e.g., "Complete Application Suite")
+  suiteDescription String? // Section description
+
+  // Application Cards (for custom layouts)
+  applicationCards String? // JSON array: [{name, icon, description, features[], color}]
+
+  // Learning Path Section (for custom layouts)
+  learningPathTitle String? // Section title (e.g., "Learning Path")
+  learningPathDesc  String? // Section description
+
+  // Learning Levels (for custom layouts)
+  learningLevels String? // JSON array: [{level, duration, modules[]}]
 
   @@map("programs")
 }

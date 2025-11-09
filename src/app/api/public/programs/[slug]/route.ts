@@ -48,6 +48,13 @@ export async function GET(
     console.log('  learningItems:', program.learningItems ? `HAS_CONTENT (${program.learningItems.length} chars)` : 'NULL')
     console.log('  modules:', program.modules ? `HAS_CONTENT (${program.modules.length} chars)` : 'NULL')
     console.log('  customContent:', program.customContent ? `HAS_CONTENT (${program.customContent.length} chars)` : 'NULL')
+    console.log('  heroApplications:', program.heroApplications ? `HAS_CONTENT (${program.heroApplications.length} chars)` : 'NULL')
+    console.log('  applicationCards:', program.applicationCards ? `HAS_CONTENT (${program.applicationCards.length} chars)` : 'NULL')
+    console.log('  learningLevels:', program.learningLevels ? `HAS_CONTENT (${program.learningLevels.length} chars)` : 'NULL')
+    console.log('  suiteTitle:', program.suiteTitle || 'NULL')
+    console.log('  suiteDescription:', program.suiteDescription ? `HAS_CONTENT (${program.suiteDescription.length} chars)` : 'NULL')
+    console.log('  learningPathTitle:', program.learningPathTitle || 'NULL')
+    console.log('  learningPathDesc:', program.learningPathDesc ? `HAS_CONTENT (${program.learningPathDesc.length} chars)` : 'NULL')
 
     // Return program with all fields - Prisma includes all fields when using include
     return NextResponse.json({

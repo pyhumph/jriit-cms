@@ -22,6 +22,7 @@ interface LearningItem {
   icon: string
   title: string
   description: string
+  color?: string
 }
 
 interface Program {
@@ -116,6 +117,42 @@ export default function EditProgramPage() {
     order: 0,
   })
 
+  // Custom content interfaces
+  interface Application {
+    icon: string
+    name: string
+    description: string
+    features: string[]
+    color?: string
+  }
+
+  interface SkillLevel {
+    title: string
+    duration: string
+    apps: string[]
+  }
+
+  interface HeroApplication {
+    name: string
+    icon: string
+    slug: string
+    color?: string
+  }
+
+  interface ApplicationCard {
+    name: string
+    icon: string
+    description: string
+    features: string[]
+    color?: string
+  }
+
+  interface LearningLevel {
+    level: string
+    duration: string
+    modules: string[]
+  }
+
   // Detail page content state
   const [detailPageData, setDetailPageData] = useState({
     detailPageLayout: 'standard' as 'standard' | 'custom-applications' | 'custom-adobe',
@@ -136,8 +173,21 @@ export default function EditProgramPage() {
     careerOpportunities: [] as string[],
     ctaTitle: 'Ready to Start?',
     ctaDescription: '',
-    customContent: '',
+    // Custom content (parsed from JSON) - legacy
+    applications: [] as Application[],
+    skillLevels: [] as SkillLevel[],
+    // New custom layout fields
+    heroApplications: [] as HeroApplication[],
+    suiteTitle: '',
+    suiteDescription: '',
+    applicationCards: [] as ApplicationCard[],
+    learningPathTitle: '',
+    learningPathDesc: '',
+    learningLevels: [] as LearningLevel[],
   })
+
+  // Track if we've already loaded the program to prevent refetching on tab switch
+  const [hasLoaded, setHasLoaded] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -145,11 +195,14 @@ export default function EditProgramPage() {
       return
     }
 
-    if (session && programId) {
+    // Only fetch if we have a session, programId, and haven't loaded yet
+    if (session && programId && !hasLoaded) {
       fetchProgram()
       fetchDepartments()
+      setHasLoaded(true)
     }
-  }, [session, status, router, programId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, status, programId])
 
   // Debug: Log when detailPageData changes
   useEffect(() => {
@@ -209,6 +262,56 @@ export default function EditProgramPage() {
             const modules = prog.modules ? JSON.parse(prog.modules) : []
             const careerOpportunities = prog.careerOpportunitiesJson ? JSON.parse(prog.careerOpportunitiesJson) : []
             
+            // Parse customContent for custom layouts (legacy)
+            let applications: Application[] = []
+            let skillLevels: SkillLevel[] = []
+            if (prog.customContent) {
+              try {
+                const customContent = typeof prog.customContent === 'string' 
+                  ? JSON.parse(prog.customContent) 
+                  : prog.customContent
+                applications = Array.isArray(customContent.applications) ? customContent.applications : []
+                skillLevels = Array.isArray(customContent.skillLevels) ? customContent.skillLevels : []
+              } catch (e) {
+                console.error('Error parsing customContent:', e)
+              }
+            }
+
+            // Parse new custom layout fields
+            let heroApplications: HeroApplication[] = []
+            let applicationCards: ApplicationCard[] = []
+            let learningLevels: LearningLevel[] = []
+            
+            if (prog.heroApplications) {
+              try {
+                heroApplications = Array.isArray(JSON.parse(prog.heroApplications)) 
+                  ? JSON.parse(prog.heroApplications) 
+                  : []
+              } catch (e) {
+                console.error('Error parsing heroApplications:', e)
+              }
+            }
+
+            if (prog.applicationCards) {
+              try {
+                applicationCards = Array.isArray(JSON.parse(prog.applicationCards)) 
+                  ? JSON.parse(prog.applicationCards) 
+                  : []
+              } catch (e) {
+                console.error('Error parsing applicationCards:', e)
+              }
+            }
+
+            if (prog.learningLevels) {
+              try {
+                learningLevels = Array.isArray(JSON.parse(prog.learningLevels)) 
+                  ? JSON.parse(prog.learningLevels) 
+                  : []
+              } catch (e) {
+                console.error('Error parsing learningLevels:', e)
+              }
+            }
+            
             const detailData = {
               detailPageLayout: (prog.detailPageLayout as any) || 'standard',
               heroTitle: prog.heroTitle || '',
@@ -228,7 +331,17 @@ export default function EditProgramPage() {
               careerOpportunities: Array.isArray(careerOpportunities) ? careerOpportunities : [],
               ctaTitle: prog.ctaTitle || 'Ready to Start?',
               ctaDescription: prog.ctaDescription || '',
-              customContent: prog.customContent || '',
+              // Legacy custom content
+              applications: applications,
+              skillLevels: skillLevels,
+              // New custom layout fields
+              heroApplications: heroApplications,
+              suiteTitle: prog.suiteTitle || '',
+              suiteDescription: prog.suiteDescription || '',
+              applicationCards: applicationCards,
+              learningPathTitle: prog.learningPathTitle || '',
+              learningPathDesc: prog.learningPathDesc || '',
+              learningLevels: learningLevels,
             }
             
             console.log('Dashboard: Setting detail page data:', {
@@ -290,7 +403,7 @@ export default function EditProgramPage() {
   const addLearningItem = () => {
     setDetailPageData(prev => ({
       ...prev,
-      learningItems: [...prev.learningItems, { icon: '', title: '', description: '' }],
+      learningItems: [...prev.learningItems, { icon: '', title: '', description: '', color: 'blue' }],
     }))
   }
 
@@ -352,6 +465,247 @@ export default function EditProgramPage() {
     }))
   }
 
+  // Custom content helper functions
+  const addApplication = () => {
+    setDetailPageData(prev => ({
+      ...prev,
+      applications: [...prev.applications, { icon: '', name: '', description: '', features: [], color: 'blue' }],
+    }))
+  }
+
+  const removeApplication = (index: number) => {
+    setDetailPageData(prev => ({
+      ...prev,
+      applications: prev.applications.filter((_, i) => i !== index),
+    }))
+  }
+
+  const updateApplication = (index: number, field: keyof Application, value: string | string[]) => {
+    setDetailPageData(prev => ({
+      ...prev,
+      applications: prev.applications.map((app, i) =>
+        i === index ? { ...app, [field]: value } : app
+      ),
+    }))
+  }
+
+  const addApplicationFeature = (appIndex: number) => {
+    setDetailPageData(prev => ({
+      ...prev,
+      applications: prev.applications.map((app, i) =>
+        i === appIndex ? { ...app, features: [...app.features, ''] } : app
+      ),
+    }))
+  }
+
+  const removeApplicationFeature = (appIndex: number, featureIndex: number) => {
+    setDetailPageData(prev => ({
+      ...prev,
+      applications: prev.applications.map((app, i) =>
+        i === appIndex
+          ? { ...app, features: app.features.filter((_, fi) => fi !== featureIndex) }
+          : app
+      ),
+    }))
+  }
+
+  const updateApplicationFeature = (appIndex: number, featureIndex: number, value: string) => {
+    setDetailPageData(prev => ({
+      ...prev,
+      applications: prev.applications.map((app, i) =>
+        i === appIndex
+          ? { ...app, features: app.features.map((f, fi) => (fi === featureIndex ? value : f)) }
+          : app
+      ),
+    }))
+  }
+
+  const addSkillLevel = () => {
+    setDetailPageData(prev => ({
+      ...prev,
+      skillLevels: [...prev.skillLevels, { title: '', duration: '', apps: [] }],
+    }))
+  }
+
+  const removeSkillLevel = (index: number) => {
+    setDetailPageData(prev => ({
+      ...prev,
+      skillLevels: prev.skillLevels.filter((_, i) => i !== index),
+    }))
+  }
+
+  const updateSkillLevel = (index: number, field: keyof SkillLevel, value: string | string[]) => {
+    setDetailPageData(prev => ({
+      ...prev,
+      skillLevels: prev.skillLevels.map((level, i) =>
+        i === index ? { ...level, [field]: value } : level
+      ),
+    }))
+  }
+
+  const addSkillLevelApp = (levelIndex: number) => {
+    setDetailPageData(prev => ({
+      ...prev,
+      skillLevels: prev.skillLevels.map((level, i) =>
+        i === levelIndex ? { ...level, apps: [...level.apps, ''] } : level
+      ),
+    }))
+  }
+
+  const removeSkillLevelApp = (levelIndex: number, appIndex: number) => {
+    setDetailPageData(prev => ({
+      ...prev,
+      skillLevels: prev.skillLevels.map((level, i) =>
+        i === levelIndex
+          ? { ...level, apps: level.apps.filter((_, ai) => ai !== appIndex) }
+          : level
+      ),
+    }))
+  }
+
+  const updateSkillLevelApp = (levelIndex: number, appIndex: number, value: string) => {
+    setDetailPageData(prev => ({
+      ...prev,
+      skillLevels: prev.skillLevels.map((level, i) =>
+        i === levelIndex
+          ? { ...level, apps: level.apps.map((a, ai) => (ai === appIndex ? value : a)) }
+          : level
+      ),
+    }))
+  }
+
+  // New custom layout helper functions
+  const addHeroApplication = () => {
+    setDetailPageData(prev => ({
+      ...prev,
+      heroApplications: [...prev.heroApplications, { name: '', icon: '', slug: '', color: 'white' }],
+    }))
+  }
+
+  const removeHeroApplication = (index: number) => {
+    setDetailPageData(prev => ({
+      ...prev,
+      heroApplications: prev.heroApplications.filter((_, i) => i !== index),
+    }))
+  }
+
+  const updateHeroApplication = (index: number, field: keyof HeroApplication, value: string) => {
+    setDetailPageData(prev => ({
+      ...prev,
+      heroApplications: prev.heroApplications.map((app, i) =>
+        i === index ? { ...app, [field]: value } : app
+      ),
+    }))
+  }
+
+  const addApplicationCard = () => {
+    setDetailPageData(prev => ({
+      ...prev,
+      applicationCards: [...prev.applicationCards, { name: '', icon: '', description: '', features: [], color: 'blue' }],
+    }))
+  }
+
+  const removeApplicationCard = (index: number) => {
+    setDetailPageData(prev => ({
+      ...prev,
+      applicationCards: prev.applicationCards.filter((_, i) => i !== index),
+    }))
+  }
+
+  const updateApplicationCard = (index: number, field: keyof ApplicationCard, value: string | string[]) => {
+    setDetailPageData(prev => ({
+      ...prev,
+      applicationCards: prev.applicationCards.map((card, i) =>
+        i === index ? { ...card, [field]: value } : card
+      ),
+    }))
+  }
+
+  const addApplicationCardFeature = (cardIndex: number) => {
+    setDetailPageData(prev => ({
+      ...prev,
+      applicationCards: prev.applicationCards.map((card, i) =>
+        i === cardIndex ? { ...card, features: [...card.features, ''] } : card
+      ),
+    }))
+  }
+
+  const removeApplicationCardFeature = (cardIndex: number, featureIndex: number) => {
+    setDetailPageData(prev => ({
+      ...prev,
+      applicationCards: prev.applicationCards.map((card, i) =>
+        i === cardIndex
+          ? { ...card, features: card.features.filter((_, fi) => fi !== featureIndex) }
+          : card
+      ),
+    }))
+  }
+
+  const updateApplicationCardFeature = (cardIndex: number, featureIndex: number, value: string) => {
+    setDetailPageData(prev => ({
+      ...prev,
+      applicationCards: prev.applicationCards.map((card, i) =>
+        i === cardIndex
+          ? { ...card, features: card.features.map((f, fi) => (fi === featureIndex ? value : f)) }
+          : card
+      ),
+    }))
+  }
+
+  const addLearningLevel = () => {
+    setDetailPageData(prev => ({
+      ...prev,
+      learningLevels: [...prev.learningLevels, { level: '', duration: '', modules: [] }],
+    }))
+  }
+
+  const removeLearningLevel = (index: number) => {
+    setDetailPageData(prev => ({
+      ...prev,
+      learningLevels: prev.learningLevels.filter((_, i) => i !== index),
+    }))
+  }
+
+  const updateLearningLevel = (index: number, field: keyof LearningLevel, value: string | string[]) => {
+    setDetailPageData(prev => ({
+      ...prev,
+      learningLevels: prev.learningLevels.map((level, i) =>
+        i === index ? { ...level, [field]: value } : level
+      ),
+    }))
+  }
+
+  const addLearningLevelModule = (levelIndex: number) => {
+    setDetailPageData(prev => ({
+      ...prev,
+      learningLevels: prev.learningLevels.map((level, i) =>
+        i === levelIndex ? { ...level, modules: [...level.modules, ''] } : level
+      ),
+    }))
+  }
+
+  const removeLearningLevelModule = (levelIndex: number, moduleIndex: number) => {
+    setDetailPageData(prev => ({
+      ...prev,
+      learningLevels: prev.learningLevels.map((level, i) =>
+        i === levelIndex
+          ? { ...level, modules: level.modules.filter((_, mi) => mi !== moduleIndex) }
+          : level
+      ),
+    }))
+  }
+
+  const updateLearningLevelModule = (levelIndex: number, moduleIndex: number, value: string) => {
+    setDetailPageData(prev => ({
+      ...prev,
+      learningLevels: prev.learningLevels.map((level, i) =>
+        i === levelIndex
+          ? { ...level, modules: level.modules.map((m, mi) => (mi === moduleIndex ? value : m)) }
+          : level
+      ),
+    }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -403,7 +757,43 @@ export default function EditProgramPage() {
         updatePayload.careerOpportunitiesJson = careerOpportunitiesJson
         updatePayload.ctaTitle = detailPageData.ctaTitle || null
         updatePayload.ctaDescription = detailPageData.ctaDescription || null
-        updatePayload.customContent = detailPageData.customContent || null
+        
+        // Convert custom content arrays to JSON string (legacy)
+        if (detailPageData.detailPageLayout !== 'standard') {
+          const customContent = {
+            applications: detailPageData.applications || [],
+            skillLevels: detailPageData.skillLevels || [],
+          }
+          updatePayload.customContent = JSON.stringify(customContent)
+        } else {
+          updatePayload.customContent = null
+        }
+
+        // Save new custom layout fields
+        if (detailPageData.detailPageLayout === 'custom-applications' || detailPageData.detailPageLayout === 'custom-adobe') {
+          updatePayload.heroApplications = detailPageData.heroApplications.length > 0
+            ? JSON.stringify(detailPageData.heroApplications)
+            : null
+          updatePayload.suiteTitle = detailPageData.suiteTitle || null
+          updatePayload.suiteDescription = detailPageData.suiteDescription || null
+          updatePayload.applicationCards = detailPageData.applicationCards.length > 0
+            ? JSON.stringify(detailPageData.applicationCards)
+            : null
+          updatePayload.learningPathTitle = detailPageData.learningPathTitle || null
+          updatePayload.learningPathDesc = detailPageData.learningPathDesc || null
+          updatePayload.learningLevels = detailPageData.learningLevels.length > 0
+            ? JSON.stringify(detailPageData.learningLevels)
+            : null
+        } else {
+          // Clear custom layout fields for standard layout
+          updatePayload.heroApplications = null
+          updatePayload.suiteTitle = null
+          updatePayload.suiteDescription = null
+          updatePayload.applicationCards = null
+          updatePayload.learningPathTitle = null
+          updatePayload.learningPathDesc = null
+          updatePayload.learningLevels = null
+        }
       }
       // If on basic tab, don't send detail page fields at all (partial update)
 
@@ -586,82 +976,6 @@ export default function EditProgramPage() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Description</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    rows={6}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-gray-900 border-b border-gray-200 pb-2">Program Details</h2>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
-                    <input
-                      type="text"
-                      value={formData.duration}
-                      onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Degree/Certificate</label>
-                    <input
-                      type="text"
-                      value={formData.degree}
-                      onChange={(e) => setFormData(prev => ({ ...prev, degree: e.target.value }))}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Featured Image URL</label>
-                  <input
-                    type="url"
-                    value={formData.featuredImage}
-                    onChange={(e) => setFormData(prev => ({ ...prev, featuredImage: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Prerequisites/Requirements</label>
-                  <textarea
-                    value={formData.requirements}
-                    onChange={(e) => setFormData(prev => ({ ...prev, requirements: e.target.value }))}
-                    rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Curriculum (JSON or text)</label>
-                  <textarea
-                    value={formData.curriculum}
-                    onChange={(e) => setFormData(prev => ({ ...prev, curriculum: e.target.value }))}
-                    rows={4}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Career Opportunities</label>
-                  <textarea
-                    value={formData.careerOpportunities}
-                    onChange={(e) => setFormData(prev => ({ ...prev, careerOpportunities: e.target.value }))}
-                    rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
               </div>
 
               <div className="space-y-4">
@@ -762,7 +1076,8 @@ export default function EditProgramPage() {
                 </div>
               </div>
 
-              {/* Overview Section */}
+              {/* Overview Section - Hidden for custom layouts */}
+              {detailPageData.detailPageLayout === 'standard' && (
               <div className="space-y-4">
                 <h2 className="text-xl font-semibold text-gray-900 border-b border-gray-200 pb-2">Overview Section</h2>
                 <div>
@@ -785,8 +1100,10 @@ export default function EditProgramPage() {
                   />
                 </div>
               </div>
+              )}
 
-              {/* Learning Items */}
+              {/* Learning Items - Hidden for custom layouts */}
+              {detailPageData.detailPageLayout === 'standard' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-semibold text-gray-900 border-b border-gray-200 pb-2 flex-1">What You'll Learn</h2>
@@ -832,6 +1149,17 @@ export default function EditProgramPage() {
                         />
                       </div>
                       <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Icon Color</label>
+                        <input
+                          type="text"
+                          value={item.color || 'blue'}
+                          onChange={(e) => updateLearningItem(index, 'color', e.target.value)}
+                          placeholder="e.g., blue, red, green, purple, custom-pink"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        <p className="mt-1 text-xs text-gray-500">Color name (e.g., blue, red, green, purple) or Tailwind class (e.g., custom-pink)</p>
+                      </div>
+                      <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
                         <input
                           type="text"
@@ -856,8 +1184,10 @@ export default function EditProgramPage() {
                   )}
                 </div>
               </div>
+              )}
 
-              {/* Course Modules */}
+              {/* Course Modules - Hidden for custom layouts */}
+              {detailPageData.detailPageLayout === 'standard' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-semibold text-gray-900 border-b border-gray-200 pb-2 flex-1">Course Modules</h2>
@@ -903,8 +1233,10 @@ export default function EditProgramPage() {
                   )}
                 </div>
               </div>
+              )}
 
-              {/* Program Details Sidebar */}
+              {/* Program Details Sidebar - Hidden for custom layouts */}
+              {detailPageData.detailPageLayout === 'standard' && (
               <div className="space-y-4">
                 <h2 className="text-xl font-semibold text-gray-900 border-b border-gray-200 pb-2">Program Details (Sidebar)</h2>
                 <div className="grid grid-cols-2 gap-4">
@@ -950,8 +1282,10 @@ export default function EditProgramPage() {
                   />
                 </div>
               </div>
+              )}
 
-              {/* Career Opportunities */}
+              {/* Career Opportunities - Hidden for custom layouts */}
+              {detailPageData.detailPageLayout === 'standard' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-semibold text-gray-900 border-b border-gray-200 pb-2 flex-1">Career Opportunities</h2>
@@ -997,8 +1331,342 @@ export default function EditProgramPage() {
                   )}
                 </div>
               </div>
+              )}
 
-              {/* CTA Section */}
+              {/* Custom Content (for custom layouts) - Legacy */}
+              {detailPageData.detailPageLayout !== 'standard' && (
+                <div className="space-y-6">
+                  {/* Hero Applications Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-xl font-semibold text-gray-900 border-b border-gray-200 pb-2 flex-1">
+                        Hero Applications (Quick Links)
+                      </h2>
+                      <button
+                        type="button"
+                        onClick={addHeroApplication}
+                        className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+                      >
+                        <PlusIcon className="h-4 w-4 mr-1" />
+                        Add Application
+                      </button>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      These applications appear in the hero section floating cards (first 4 will be shown).
+                    </p>
+                    <div className="space-y-4">
+                      {detailPageData.heroApplications.map((app, index) => (
+                        <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-semibold text-gray-800">Hero App {index + 1}</h3>
+                            <button
+                              type="button"
+                              onClick={() => removeHeroApplication(index)}
+                              className="p-2 text-red-600 hover:text-red-700"
+                            >
+                              <TrashIcon className="h-5 w-5" />
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Application Name</label>
+                              <input
+                                type="text"
+                                value={app.name}
+                                onChange={(e) => updateHeroApplication(index, 'name', e.target.value)}
+                                placeholder="e.g., Microsoft Word"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Icon Name (Lucide)</label>
+                              <input
+                                type="text"
+                                value={app.icon}
+                                onChange={(e) => updateHeroApplication(index, 'icon', e.target.value)}
+                                placeholder="e.g., FileText"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Slug</label>
+                              <input
+                                type="text"
+                                value={app.slug}
+                                onChange={(e) => updateHeroApplication(index, 'slug', e.target.value)}
+                                placeholder="e.g., word"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Icon Color</label>
+                              <input
+                                type="text"
+                                value={app.color || 'white'}
+                                onChange={(e) => updateHeroApplication(index, 'color', e.target.value)}
+                                placeholder="e.g., white, yellow, blue, red"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                              <p className="mt-1 text-xs text-gray-500">Color for hero section icon (e.g., white, yellow-400, blue, red)</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {detailPageData.heroApplications.length === 0 && (
+                        <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">
+                          No hero applications added yet. Click "Add Application" to get started.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Complete Suite Section */}
+                  <div className="space-y-4">
+                    <h2 className="text-xl font-semibold text-gray-900 border-b border-gray-200 pb-2">
+                      Complete Suite Section
+                    </h2>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Section Title</label>
+                      <input
+                        type="text"
+                        value={detailPageData.suiteTitle}
+                        onChange={(e) => setDetailPageData(prev => ({ ...prev, suiteTitle: e.target.value }))}
+                        placeholder="e.g., Complete Application Suite"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Section Description</label>
+                      <textarea
+                        value={detailPageData.suiteDescription}
+                        onChange={(e) => setDetailPageData(prev => ({ ...prev, suiteDescription: e.target.value }))}
+                        rows={2}
+                        placeholder="e.g., Learn industry-standard applications used by millions worldwide"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between mt-4">
+                      <h3 className="font-semibold text-gray-800">Application Cards</h3>
+                      <button
+                        type="button"
+                        onClick={addApplicationCard}
+                        className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+                      >
+                        <PlusIcon className="h-4 w-4 mr-1" />
+                        Add Application Card
+                      </button>
+                    </div>
+                    <div className="space-y-4">
+                      {detailPageData.applicationCards.map((card, index) => (
+                        <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-semibold text-gray-800">Application Card {index + 1}</h3>
+                            <button
+                              type="button"
+                              onClick={() => removeApplicationCard(index)}
+                              className="p-2 text-red-600 hover:text-red-700"
+                            >
+                              <TrashIcon className="h-5 w-5" />
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Application Name</label>
+                              <input
+                                type="text"
+                                value={card.name}
+                                onChange={(e) => updateApplicationCard(index, 'name', e.target.value)}
+                                placeholder="e.g., Microsoft Word"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Icon Name (Lucide)</label>
+                              <input
+                                type="text"
+                                value={card.icon}
+                                onChange={(e) => updateApplicationCard(index, 'icon', e.target.value)}
+                                placeholder="e.g., FileText"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            </div>
+                            <div className="md:col-span-2">
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                              <textarea
+                                value={card.description}
+                                onChange={(e) => updateApplicationCard(index, 'description', e.target.value)}
+                                rows={2}
+                                placeholder="Brief description of the application"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Color (optional)</label>
+                              <input
+                                type="text"
+                                value={card.color || 'blue'}
+                                onChange={(e) => updateApplicationCard(index, 'color', e.target.value)}
+                                placeholder="blue, purple, red, etc."
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            </div>
+                            <div className="md:col-span-2">
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Features</label>
+                              <div className="space-y-2">
+                                {card.features.map((feature, featureIndex) => (
+                                  <div key={featureIndex} className="flex items-center space-x-2">
+                                    <input
+                                      type="text"
+                                      value={feature}
+                                      onChange={(e) => updateApplicationCardFeature(index, featureIndex, e.target.value)}
+                                      placeholder={`Feature ${featureIndex + 1}`}
+                                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => removeApplicationCardFeature(index, featureIndex)}
+                                      className="p-2 text-red-600 hover:text-red-700"
+                                    >
+                                      <TrashIcon className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                ))}
+                                <button
+                                  type="button"
+                                  onClick={() => addApplicationCardFeature(index)}
+                                  className="text-sm text-blue-600 hover:text-blue-700 flex items-center"
+                                >
+                                  <PlusIcon className="h-4 w-4 mr-1" />
+                                  Add Feature
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {detailPageData.applicationCards.length === 0 && (
+                        <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">
+                          No application cards added yet. Click "Add Application Card" to get started.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Learning Path Section */}
+                  <div className="space-y-4">
+                    <h2 className="text-xl font-semibold text-gray-900 border-b border-gray-200 pb-2">
+                      Learning Path Section
+                    </h2>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Section Title</label>
+                      <input
+                        type="text"
+                        value={detailPageData.learningPathTitle}
+                        onChange={(e) => setDetailPageData(prev => ({ ...prev, learningPathTitle: e.target.value }))}
+                        placeholder="e.g., Learning Path"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Section Description</label>
+                      <textarea
+                        value={detailPageData.learningPathDesc}
+                        onChange={(e) => setDetailPageData(prev => ({ ...prev, learningPathDesc: e.target.value }))}
+                        rows={2}
+                        placeholder="e.g., Progress from beginner to advanced with our structured curriculum"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between mt-4">
+                      <h3 className="font-semibold text-gray-800">Learning Levels</h3>
+                      <button
+                        type="button"
+                        onClick={addLearningLevel}
+                        className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+                      >
+                        <PlusIcon className="h-4 w-4 mr-1" />
+                        Add Learning Level
+                      </button>
+                    </div>
+                    <div className="space-y-4">
+                      {detailPageData.learningLevels.map((level, index) => (
+                        <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-semibold text-gray-800">Level {index + 1}</h3>
+                            <button
+                              type="button"
+                              onClick={() => removeLearningLevel(index)}
+                              className="p-2 text-red-600 hover:text-red-700"
+                            >
+                              <TrashIcon className="h-5 w-5" />
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Level Title</label>
+                              <input
+                                type="text"
+                                value={level.level}
+                                onChange={(e) => updateLearningLevel(index, 'level', e.target.value)}
+                                placeholder="e.g., Beginner Level"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
+                              <input
+                                type="text"
+                                value={level.duration}
+                                onChange={(e) => updateLearningLevel(index, 'duration', e.target.value)}
+                                placeholder="e.g., 2 months"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            </div>
+                            <div className="md:col-span-2">
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Modules</label>
+                              <div className="space-y-2">
+                                {level.modules.map((module, moduleIndex) => (
+                                  <div key={moduleIndex} className="flex items-center space-x-2">
+                                    <input
+                                      type="text"
+                                      value={module}
+                                      onChange={(e) => updateLearningLevelModule(index, moduleIndex, e.target.value)}
+                                      placeholder={`Module ${moduleIndex + 1}`}
+                                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => removeLearningLevelModule(index, moduleIndex)}
+                                      className="p-2 text-red-600 hover:text-red-700"
+                                    >
+                                      <TrashIcon className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                ))}
+                                <button
+                                  type="button"
+                                  onClick={() => addLearningLevelModule(index)}
+                                  className="text-sm text-blue-600 hover:text-blue-700 flex items-center"
+                                >
+                                  <PlusIcon className="h-4 w-4 mr-1" />
+                                  Add Module
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {detailPageData.learningLevels.length === 0 && (
+                        <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">
+                          No learning levels added yet. Click "Add Learning Level" to get started.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* CTA Section - Last section for custom layouts */}
               <div className="space-y-4">
                 <h2 className="text-xl font-semibold text-gray-900 border-b border-gray-200 pb-2">Call-to-Action Section</h2>
                 <div>
@@ -1021,24 +1689,6 @@ export default function EditProgramPage() {
                   />
                 </div>
               </div>
-
-              {/* Custom Content (for custom layouts) */}
-              {detailPageData.detailPageLayout !== 'standard' && (
-                <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-gray-900 border-b border-gray-200 pb-2">Custom Content</h2>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Custom Content (JSON)</label>
-                    <textarea
-                      value={detailPageData.customContent}
-                      onChange={(e) => setDetailPageData(prev => ({ ...prev, customContent: e.target.value }))}
-                      rows={8}
-                      placeholder='{"applications": [...], "skillLevels": [...]}'
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-                    />
-                    <p className="mt-1 text-sm text-gray-500">Enter JSON for custom layout content (applications array, skillLevels, etc.)</p>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 

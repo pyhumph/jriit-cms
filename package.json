@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "db:seed": "tsx prisma/seed.ts",
-    "db:seed-programs": "tsx prisma/seed-programs.ts"
+    "db:seed-programs": "tsx prisma/seed-programs.ts",
+    "db:seed-it-detail-content": "tsx prisma/seed-it-detail-content.ts",
+    "db:verify-and-reseed": "tsx prisma/verify-and-reseed.ts"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

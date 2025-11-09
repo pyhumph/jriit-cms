@@ -134,6 +134,26 @@ export async function POST(request: NextRequest) {
       isActive: z.boolean().default(true),
       isFeatured: z.boolean().default(false),
       order: z.number().default(0),
+      // Detail Page Content Fields
+      detailPageLayout: z.enum(['standard', 'custom-applications', 'custom-adobe']).optional(),
+      heroTitle: z.string().optional(),
+      heroSubtitle: z.string().optional(),
+      heroImage: z.string().optional(),
+      overviewTitle: z.string().optional(),
+      overviewContent: z.string().optional(),
+      learningTitle: z.string().optional(),
+      learningItems: z.string().optional(), // JSON string
+      modulesTitle: z.string().optional(),
+      modules: z.string().optional(), // JSON string
+      detailsDuration: z.string().optional(),
+      detailsFormat: z.string().optional(),
+      detailsSchedule: z.string().optional(),
+      detailsPrerequisites: z.string().optional(),
+      careerTitle: z.string().optional(),
+      careerOpportunitiesJson: z.string().optional(), // JSON string
+      ctaTitle: z.string().optional(),
+      ctaDescription: z.string().optional(),
+      customContent: z.string().optional(), // JSON string
     })
 
     const validatedData = createSchema.parse(body)

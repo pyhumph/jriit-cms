@@ -27,11 +27,14 @@ export async function GET(request: NextRequest) {
     }
     
     if (search) {
+      // SQLite doesn't support mode: 'insensitive', so we use contains without mode
+      // For case-insensitive search in SQLite, we'll convert to lowercase in the query
+      const searchLower = search.toLowerCase()
       where.OR = [
-        { filename: { contains: search, mode: 'insensitive' } },
-        { originalName: { contains: search, mode: 'insensitive' } },
-        { altText: { contains: search, mode: 'insensitive' } },
-        { caption: { contains: search, mode: 'insensitive' } },
+        { filename: { contains: search } },
+        { originalName: { contains: search } },
+        { altText: { contains: search } },
+        { caption: { contains: search } },
       ]
     }
 

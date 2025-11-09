@@ -8,34 +8,34 @@ datasource db {
 }
 
 model Admin {
-  id                  String                @id @default(cuid())
-  email               String                @unique
-  password            String
-  name                String
-  role                Role                  @default(ADMIN)
-  avatar              String?
-  isActive            Boolean               @default(true)
-  lastLogin           DateTime?
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  activityLogs        ActivityLog[]
-  departments         Department[]
-  events              Event[]
-  faculty             Faculty[]
-  feeStructures       FeeStructure[]
-  heroSlides          HeroSlide[]
-  homepageComponents  HomepageComponent[]
-  media               Media[]
-  news                News[]
-  notifications       Notification[]
-  pageComponents      PageComponent[]
-  pages               Page[]
-  photoAlbums         PhotoAlbum[]
-  posts               Post[]
-  programs            Program[]
-  testimonials        Testimonial[]
-  videos              Video[]
-  websitePages        WebsitePage[]
+  id                 String              @id @default(cuid())
+  email              String              @unique
+  password           String
+  name               String
+  role               Role                @default(ADMIN)
+  avatar             String?
+  isActive           Boolean             @default(true)
+  lastLogin          DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  activityLogs       ActivityLog[]
+  departments        Department[]
+  events             Event[]
+  faculty            Faculty[]
+  feeStructures      FeeStructure[]
+  heroSlides         HeroSlide[]
+  homepageComponents HomepageComponent[]
+  media              Media[]
+  news               News[]
+  notifications      Notification[]
+  pageComponents     PageComponent[]
+  pages              Page[]
+  photoAlbums        PhotoAlbum[]
+  posts              Post[]
+  programs           Program[]
+  testimonials       Testimonial[]
+  videos             Video[]
+  websitePages       WebsitePage[]
 
   @@map("admins")
 }
@@ -346,6 +346,45 @@ model Program {
   fees                FeeStructure[]
   department          Department?    @relation(fields: [departmentId], references: [id])
   author              Admin          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  // Detail Page Content Fields
+  // Layout Configuration
+  detailPageLayout String? // "standard", "custom-applications", "custom-adobe"
+
+  // Hero Section
+  heroTitle    String?
+  heroSubtitle String?
+  heroImage    String?
+
+  // Overview Section
+  overviewTitle   String?
+  overviewContent String? // Long text content
+
+  // What You'll Learn Section
+  learningTitle String?
+  learningItems String? // JSON array: [{icon, title, description}]
+
+  // Course Modules Section
+  modulesTitle String?
+  modules      String? // JSON array: ["Module 1", "Module 2", ...]
+
+  // Program Details (Sidebar)
+  detailsDuration      String?
+  detailsFormat        String?
+  detailsSchedule      String?
+  detailsPrerequisites String? // Long text content
+
+  // Career Opportunities (Sidebar)
+  careerTitle             String?
+  careerOpportunitiesJson String? // JSON array: ["Career 1", "Career 2", ...]
+
+  // Call-to-Action Section (Sidebar)
+  ctaTitle       String?
+  ctaDescription String? // Long text content
+
+  // Custom Layout Content (for custom-applications and custom-adobe)
+  // Stores: applications array, skillLevels array, and other custom fields
+  customContent String? // JSON object for custom layout data
 
   @@map("programs")
 }

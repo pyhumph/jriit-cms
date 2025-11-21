@@ -94,7 +94,9 @@ export async function PUT(
         ctaLink,
         isActive,
         order,
-        settings: settings ? JSON.stringify(settings) : null
+        settings: settings 
+          ? (typeof settings === 'string' ? settings : JSON.stringify(settings))
+          : null
       },
       include: {
         author: {
@@ -143,13 +145,18 @@ export async function DELETE(
       )
     }
 
-    await prisma.pageComponent.delete({
-      where: { id: params.id }
+    // Soft delete: mark as deleted instead of actually deleting
+    await prisma.pageComponent.update({
+      where: { id: params.id },
+      data: {
+        deletedAt: new Date(),
+        deletedBy: session.user.id
+      }
     })
 
     return NextResponse.json({
       success: true,
-      message: 'Page component deleted successfully'
+      message: 'Page component moved to Recycle Bin'
     })
   } catch (error) {
     console.error('Error deleting page component:', error)

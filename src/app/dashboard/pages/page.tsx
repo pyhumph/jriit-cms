@@ -80,7 +80,8 @@ export default function PagesPage() {
     if (session) {
       fetchPages()
     }
-  }, [session, status, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, status])
 
   const fetchPages = async () => {
     try {

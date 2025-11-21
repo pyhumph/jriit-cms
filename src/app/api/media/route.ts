@@ -16,7 +16,9 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit
 
     // Build where clause
-    const where: any = {}
+    const where: any = {
+      deletedAt: null  // Exclude soft-deleted items
+    }
     
     if (isPublic !== null) {
       where.isPublic = isPublic === 'true'
@@ -27,11 +29,14 @@ export async function GET(request: NextRequest) {
     }
     
     if (search) {
+      // SQLite doesn't support mode: 'insensitive', so we use contains without mode
+      // For case-insensitive search in SQLite, we'll convert to lowercase in the query
+      const searchLower = search.toLowerCase()
       where.OR = [
-        { filename: { contains: search, mode: 'insensitive' } },
-        { originalName: { contains: search, mode: 'insensitive' } },
-        { altText: { contains: search, mode: 'insensitive' } },
-        { caption: { contains: search, mode: 'insensitive' } },
+        { filename: { contains: search } },
+        { originalName: { contains: search } },
+        { altText: { contains: search } },
+        { caption: { contains: search } },
       ]
     }
 

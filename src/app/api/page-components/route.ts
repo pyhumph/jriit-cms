@@ -11,7 +11,9 @@ export async function GET(request: NextRequest) {
     const isActive = searchParams.get('isActive')
     const order = searchParams.get('order') || 'asc'
 
-    const where: any = {}
+    const where: any = {
+      deletedAt: null  // Exclude soft-deleted items
+    }
     if (pageName) where.pageName = pageName
     if (componentName) where.componentName = componentName
     if (isActive !== null) where.isActive = isActive === 'true'
@@ -89,7 +91,9 @@ export async function POST(request: NextRequest) {
         ctaLink,
         isActive,
         order,
-        settings: settings ? JSON.stringify(settings) : null,
+        settings: settings 
+          ? (typeof settings === 'string' ? settings : JSON.stringify(settings))
+          : null,
         authorId: session.user.id
       },
       include: {

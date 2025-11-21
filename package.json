@@ -8,9 +8,12 @@
     "start": "next start",
     "lint": "eslint",
     "db:seed": "tsx prisma/seed.ts",
-    "db:seed-programs": "tsx prisma/seed-programs.ts"
+    "db:seed-programs": "tsx prisma/seed-programs.ts",
+    "db:seed-it-detail-content": "tsx prisma/seed-it-detail-content.ts",
+    "db:verify-and-reseed": "tsx prisma/verify-and-reseed.ts"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.9",
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "^6.16.2",

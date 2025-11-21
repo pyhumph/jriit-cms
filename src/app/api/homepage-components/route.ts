@@ -23,7 +23,9 @@ export async function GET(request: NextRequest) {
     const isActive = searchParams.get('isActive')
     const order = searchParams.get('order') || 'asc'
 
-    const where: any = {}
+    const where: any = {
+      deletedAt: null  // Exclude soft-deleted items
+    }
     if (type) where.type = type
     if (isActive !== null) where.isActive = isActive === 'true'
 

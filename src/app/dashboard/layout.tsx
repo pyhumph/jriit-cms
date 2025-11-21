@@ -20,7 +20,8 @@ import {
   ClipboardDocumentListIcon,
   ChevronDownIcon,
   ChevronRightIcon,
-  BookOpenIcon
+  BookOpenIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline'
 import { ThemeToggle } from '@/components/ThemeToggle'
 
@@ -30,7 +31,7 @@ const courses = [
   { name: 'Cyber Security', slug: 'cyber-security', icon: '🔒' },
   { name: 'Business Administration', slug: 'business-administration', icon: '📊' },
   { name: 'Travel & Tourism', slug: 'travel-tourism-management', icon: '✈️' },
-  { name: 'Professional Course', slug: 'professional-course', icon: '🎓' },
+  { name: 'Professional Course', slug: 'professional-courses-page', icon: '🎓', isCustomPage: true },
   { name: 'Short Course', slug: 'short-course', icon: '📚' },
 ]
 
@@ -44,6 +45,7 @@ const navigation = [
   { name: 'Departments', href: '/dashboard/departments', icon: BuildingOfficeIcon, color: 'text-yellow-600', bgColor: 'bg-yellow-50' },
   { name: 'Faculty', href: '/dashboard/faculty', icon: UserGroupIcon, color: 'text-cyan-600', bgColor: 'bg-cyan-50' },
   { name: 'Media Library', href: '/dashboard/media', icon: PhotoIcon, color: 'text-teal-600', bgColor: 'bg-teal-50' },
+  { name: 'Recycle Bin', href: '/dashboard/recycle-bin', icon: TrashIcon, color: 'text-red-600', bgColor: 'bg-red-50' },
   { name: 'Global Settings', href: '/dashboard/settings', icon: CogIcon, color: 'text-gray-600', bgColor: 'bg-gray-50' },
 ]
 
@@ -63,7 +65,8 @@ export default function DashboardLayout({
     if (!session) {
       router.push('/login')
     }
-  }, [session, status, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, status])
 
   // Auto-open courses dropdown if on a course page
   useEffect(() => {
@@ -184,8 +187,10 @@ export default function DashboardLayout({
               {/* Courses Dropdown Menu */}
               {coursesOpen && (
                 <div className="mt-1 ml-4 space-y-1 border-l-2 border-gray-200 pl-4">
-                  {courses.map((course) => {
-                    const courseHref = `/dashboard/courses/${course.slug}`
+                  {courses.map((course: any) => {
+                    const courseHref = course.isCustomPage 
+                      ? `/dashboard/${course.slug}` 
+                      : `/dashboard/courses/${course.slug}`
                     const isCourseActive = pathname === courseHref
                     return (
                       <Link

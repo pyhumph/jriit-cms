@@ -155,12 +155,16 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // Delete post
-    await prisma.post.delete({
+    // Soft delete: mark as deleted instead of actually deleting
+    await prisma.post.update({
       where: { id: params.id },
+      data: {
+        deletedAt: new Date(),
+        deletedBy: session.user.id
+      }
     })
 
-    return NextResponse.json({ message: 'Post deleted successfully' })
+    return NextResponse.json({ message: 'Post moved to Recycle Bin' })
   } catch (error) {
     console.error('Error deleting post:', error)
     return NextResponse.json(
@@ -169,6 +173,11 @@ export async function DELETE(
     )
   }
 }
+
+
+
+
+
 
 
 

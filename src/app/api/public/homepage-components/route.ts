@@ -9,7 +9,8 @@ export async function GET(request: NextRequest) {
     const order = searchParams.get('order') || 'asc'
 
     const where: any = {
-      isActive: true
+      isActive: true,
+      deletedAt: null  // Exclude soft-deleted items
     }
     
     if (type) {

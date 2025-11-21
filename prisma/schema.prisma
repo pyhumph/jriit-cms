@@ -8,34 +8,34 @@ datasource db {
 }
 
 model Admin {
-  id                  String                @id @default(cuid())
-  email               String                @unique
-  password            String
-  name                String
-  role                Role                  @default(ADMIN)
-  avatar              String?
-  isActive            Boolean               @default(true)
-  lastLogin           DateTime?
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  activityLogs        ActivityLog[]
-  departments         Department[]
-  events              Event[]
-  faculty             Faculty[]
-  feeStructures       FeeStructure[]
-  heroSlides          HeroSlide[]
-  homepageComponents  HomepageComponent[]
-  media               Media[]
-  news                News[]
-  notifications       Notification[]
-  pageComponents      PageComponent[]
-  pages               Page[]
-  photoAlbums         PhotoAlbum[]
-  posts               Post[]
-  programs            Program[]
-  testimonials        Testimonial[]
-  videos              Video[]
-  websitePages        WebsitePage[]
+  id                 String              @id @default(cuid())
+  email              String              @unique
+  password           String
+  name               String
+  role               Role                @default(ADMIN)
+  avatar             String?
+  isActive           Boolean             @default(true)
+  lastLogin          DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  activityLogs       ActivityLog[]
+  departments        Department[]
+  events             Event[]
+  faculty            Faculty[]
+  feeStructures      FeeStructure[]
+  heroSlides         HeroSlide[]
+  homepageComponents HomepageComponent[]
+  media              Media[]
+  news               News[]
+  notifications      Notification[]
+  pageComponents     PageComponent[]
+  pages              Page[]
+  photoAlbums        PhotoAlbum[]
+  posts              Post[]
+  programs           Program[]
+  testimonials       Testimonial[]
+  videos             Video[]
+  websitePages       WebsitePage[]
 
   @@map("admins")
 }
@@ -135,6 +135,10 @@ model Post {
   updatedAt       DateTime  @updatedAt
   author          Admin     @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
+  // Soft Delete Fields
+  deletedAt DateTime?
+  deletedBy String?
+
   @@map("posts")
 }
 
@@ -159,6 +163,10 @@ model News {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   author          Admin     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  // Soft Delete Fields
+  deletedAt DateTime?
+  deletedBy String?
 
   @@map("news")
 }
@@ -193,6 +201,10 @@ model Event {
   updatedAt            DateTime  @updatedAt
   author               Admin     @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
+  // Soft Delete Fields
+  deletedAt DateTime?
+  deletedBy String?
+
   @@map("events")
 }
 
@@ -221,6 +233,10 @@ model Page {
   children        Page[]    @relation("PageHierarchy")
   admins          Admin     @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
+  // Soft Delete Fields
+  deletedAt DateTime?
+  deletedBy String?
+
   @@map("pages")
 }
 
@@ -246,6 +262,10 @@ model Media {
   updatedAt    DateTime     @updatedAt
   albumPhotos  AlbumPhoto[]
   uploader     Admin        @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+
+  // Soft Delete Fields
+  deletedAt DateTime?
+  deletedBy String?
 
   @@map("media")
 }
@@ -321,6 +341,10 @@ model Department {
   faculty          Faculty[]
   programs         Program[]
 
+  // Soft Delete Fields
+  deletedAt DateTime?
+  deletedBy String?
+
   @@map("departments")
 }
 
@@ -347,6 +371,92 @@ model Program {
   department          Department?    @relation(fields: [departmentId], references: [id])
   author              Admin          @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
+  // Detail Page Content Fields
+  // Layout Configuration
+  detailPageLayout String? // "standard", "custom-applications", "custom-adobe"
+
+  // Hero Section
+  heroTitle    String?
+  heroSubtitle String?
+  heroImage    String?
+
+  // Overview Section
+  overviewTitle   String?
+  overviewContent String? // Long text content
+
+  // What You'll Learn Section
+  learningTitle String?
+  learningItems String? // JSON array: [{icon, title, description}]
+
+  // Course Modules Section
+  modulesTitle String?
+  modules      String? // JSON array: ["Module 1", "Module 2", ...]
+
+  // Program Details (Sidebar)
+  detailsDuration      String?
+  detailsFormat        String?
+  detailsSchedule      String?
+  detailsPrerequisites String? // Long text content
+
+  // Career Opportunities (Sidebar)
+  careerTitle             String?
+  careerOpportunitiesJson String? // JSON array: ["Career 1", "Career 2", ...]
+
+  // Call-to-Action Section (Sidebar)
+  ctaTitle       String?
+  ctaDescription String? // Long text content
+
+  // Custom Layout Content (for custom-applications and custom-adobe)
+  // Stores: applications array, skillLevels array, and other custom fields
+  customContent String? // JSON object for custom layout data (legacy, kept for backward compatibility)
+
+  // Hero Section Applications (quick links for custom layouts)
+  heroApplications String? // JSON array: [{name, icon, slug}]
+
+  // Complete Suite Section (for custom layouts)
+  suiteTitle       String? // Section title (e.g., "Complete Application Suite")
+  suiteDescription String? // Section description
+
+  // Application Cards (for custom layouts)
+  applicationCards String? // JSON array: [{name, icon, description, features[], color}]
+
+  // Learning Path Section (for custom layouts)
+  learningPathTitle String? // Section title (e.g., "Learning Path")
+  learningPathDesc  String? // Section description
+
+  // Learning Levels (for custom layouts)
+  learningLevels String? // JSON array: [{level, duration, modules[]}]
+
+  // Cyber Security Layout Fields
+  introParagraphs String? // JSON array: ["paragraph1", "paragraph2", ...]
+  classroomImage String?
+  classroomTitle String? // Default: "IN THE CLASSROOM"
+  classroomParagraphs String? // JSON array: ["paragraph1", "paragraph2", ...]
+  beyondClassroomImage String?
+  beyondClassroomTitle String? // Default: "BEYOND THE CLASSROOM"
+  beyondClassroomParagraphs String? // JSON array: ["paragraph1", "paragraph2", ...]
+  differenceImage String?
+  differenceTitle String? // e.g., "CYBERSECURITY + THE JRIIT DIFFERENCE"
+  differenceParagraphs String? // JSON array: ["paragraph1", "paragraph2", ...]
+
+  // Computer Science/Engineering Layout Fields (CourseDetailPage)
+  level String? // e.g., "Beginner to Intermediate"
+  learningOutcomes String? // JSON array: ["outcome1", "outcome2", ...]
+  careerPaths String? // JSON array: [{title, description, color}]
+
+  // Business Administration / Travel & Tourism Layout Fields
+  coreConcepts String? // JSON array: [{icon, title, description, features[], color}]
+  learningPath String? // JSON array: [{title, duration, topics[]}]
+  // Note: courseModules uses existing "modules" field
+
+  // Professional Course Fields (for external certification programs)
+  keyCertifications String? // JSON array: ["Certification 1", "Certification 2", ...]
+  externalLink      String? // External URL for "Learn More" button
+
+  // Soft Delete Fields
+  deletedAt DateTime? // Null = not deleted, Date = deleted timestamp
+  deletedBy String?   // Admin ID who deleted it
+
   @@map("programs")
 }
 
@@ -371,6 +481,10 @@ model Faculty {
   updatedAt      DateTime    @updatedAt
   department     Department? @relation(fields: [departmentId], references: [id])
   author         Admin       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  // Soft Delete Fields
+  deletedAt DateTime?
+  deletedBy String?
 
   @@map("faculty")
 }
@@ -416,6 +530,10 @@ model HeroSlide {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   author      Admin    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  // Soft Delete Fields
+  deletedAt DateTime?
+  deletedBy String?
 
   @@map("hero_slides")
 }
@@ -494,6 +612,10 @@ model HomepageComponent {
   cta3Text  String?
   author    Admin    @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
+  // Soft Delete Fields
+  deletedAt DateTime?
+  deletedBy String?
+
   @@map("homepage_components")
 }
 
@@ -515,6 +637,10 @@ model PageComponent {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   author        Admin    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  // Soft Delete Fields
+  deletedAt DateTime?
+  deletedBy String?
 
   @@unique([pageName, componentName])
   @@map("page_components")

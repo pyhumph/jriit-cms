@@ -81,7 +81,8 @@ export default function EventsPage() {
     if (session) {
       fetchEvents()
     }
-  }, [session, status, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, status])
 
   const fetchEvents = async () => {
     try {

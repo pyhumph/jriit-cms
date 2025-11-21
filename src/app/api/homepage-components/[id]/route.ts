@@ -169,13 +169,18 @@ export async function DELETE(
       )
     }
 
-    await prisma.homepageComponent.delete({
-      where: { id: params.id }
+    // Soft delete: mark as deleted instead of actually deleting
+    await prisma.homepageComponent.update({
+      where: { id: params.id },
+      data: {
+        deletedAt: new Date(),
+        deletedBy: session.user.id
+      }
     })
 
     return NextResponse.json({
       success: true,
-      message: 'Homepage component deleted successfully'
+      message: 'Homepage component moved to Recycle Bin'
     })
   } catch (error) {
     console.error('Error deleting homepage component:', error)

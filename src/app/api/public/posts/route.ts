@@ -13,7 +13,8 @@ export async function GET(request: NextRequest) {
 
     // Build where clause - only published posts
     const where: any = {
-      published: true
+      published: true,
+      deletedAt: null  // Exclude soft-deleted items
     }
     
     if (search) {

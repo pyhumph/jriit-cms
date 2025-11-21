@@ -11,8 +11,13 @@ export async function GET(
     const programSlug = slug
 
     // Find program by slug - include all fields including detail page fields
-    const program = await prisma.program.findUnique({
-      where: { slug: programSlug },
+    // CRITICAL: Use findFirst instead of findUnique to filter by deletedAt
+    const program = await prisma.program.findFirst({
+      where: { 
+        slug: programSlug,
+        isActive: true,          // Only active programs
+        deletedAt: null          // CRITICAL: Exclude soft-deleted items from public API
+      },
       include: {
         department: {
           select: {
@@ -25,14 +30,6 @@ export async function GET(
     })
 
     if (!program) {
-      return NextResponse.json(
-        { success: false, error: 'Program not found' },
-        { status: 404 }
-      )
-    }
-
-    // Only return active programs for public endpoint
-    if (!program.isActive) {
       return NextResponse.json(
         { success: false, error: 'Program not found' },
         { status: 404 }

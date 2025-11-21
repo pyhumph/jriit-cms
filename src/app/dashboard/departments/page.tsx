@@ -78,7 +78,8 @@ export default function DepartmentsPage() {
     if (session) {
       fetchDepartments()
     }
-  }, [session, status, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, status])
 
   const fetchDepartments = async () => {
     try {

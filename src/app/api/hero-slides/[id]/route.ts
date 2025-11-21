@@ -137,13 +137,18 @@ export async function DELETE(
       )
     }
 
-    await prisma.heroSlide.delete({
-      where: { id: params.id }
+    // Soft delete: mark as deleted instead of actually deleting
+    await prisma.heroSlide.update({
+      where: { id: params.id },
+      data: {
+        deletedAt: new Date(),
+        deletedBy: session.user.id
+      }
     })
 
     return NextResponse.json({
       success: true,
-      message: 'Hero slide deleted successfully'
+      message: 'Hero slide moved to Recycle Bin'
     })
   } catch (error) {
     console.error('Error deleting hero slide:', error)

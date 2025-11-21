@@ -147,9 +147,16 @@ export async function DELETE(_: NextRequest, { params }: { params: { identifier:
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    await prisma.page.delete({ where: { id: params.identifier } })
+    // Soft delete: mark as deleted instead of actually deleting
+    await prisma.page.update({ 
+      where: { id: params.identifier },
+      data: {
+        deletedAt: new Date(),
+        deletedBy: session.user.id
+      }
+    })
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, message: 'Page moved to Recycle Bin' })
   } catch (error: unknown) {
     const prismaError = typeof error === 'object' && error !== null && 'code' in error ? (error as { code?: string }) : null
 

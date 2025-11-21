@@ -33,37 +33,21 @@ export async function DELETE(
       )
     }
 
-    // Delete file from filesystem if it's a local upload
-    if (mediaItem.url.startsWith('/uploads/')) {
-      try {
-        const filepath = path.join(
-          process.cwd(),
-          'public',
-          mediaItem.url
-        )
-
-        // Check if file exists before trying to delete
-        if (existsSync(filepath)) {
-          await unlink(filepath)
-          console.log(`Deleted file: ${filepath}`)
-        } else {
-          console.warn(`File not found: ${filepath} (continuing with database deletion)`)
-        }
-      } catch (error) {
-        console.error('Failed to delete file:', error)
-        // Continue with database deletion even if file deletion fails
-        // The file might have been manually deleted or doesn't exist
-      }
-    }
-
-    // Delete from database
-    await prisma.media.delete({
+    // Note: We do NOT delete the physical file yet - only soft delete in database
+    // Files will be cleaned up when permanently deleted from Recycle Bin
+    
+    // Soft delete: mark as deleted instead of actually deleting
+    await prisma.media.update({
       where: { id },
+      data: {
+        deletedAt: new Date(),
+        deletedBy: session.user.id
+      }
     })
 
     return NextResponse.json({
       success: true,
-      message: 'Media deleted successfully',
+      message: 'Media moved to Recycle Bin',
     })
   } catch (error) {
     console.error('Delete media error:', error)

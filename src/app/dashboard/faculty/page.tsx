@@ -78,7 +78,8 @@ export default function FacultyPage() {
     if (session) {
       fetchFaculty()
     }
-  }, [session, status, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, status])
 
   const fetchFaculty = async () => {
     try {

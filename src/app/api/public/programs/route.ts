@@ -17,7 +17,8 @@ export async function GET(request: NextRequest) {
 
     // Build where clause
     const where: any = {
-      isActive: isActive !== false
+      isActive: isActive !== false,
+      deletedAt: null  // CRITICAL: Exclude soft-deleted items from public API
     }
     
     if (featured === 'true') {

@@ -73,13 +73,14 @@ export async function GET(request: NextRequest) {
     const skip = Math.max(parseNumber(searchParams.get('skip'), 0), 0)
 
     const orderFieldParam = searchParams.get('orderBy') as OrderableField | null
-    const orderField: OrderableField = ORDERABLE_FIELDS.includes(orderFieldParam ?? 'updatedAt')
-      ? (orderFieldParam as OrderableField)
+    const orderField: OrderableField = (orderFieldParam && ORDERABLE_FIELDS.includes(orderFieldParam))
+      ? orderFieldParam
       : 'updatedAt'
     const orderDirection = searchParams.get('order') === 'asc' ? 'asc' : 'desc'
     const orderBy = { [orderField]: orderDirection } as Prisma.PageOrderByWithRelationInput
 
     const where: Prisma.PageWhereInput = {
+      deletedAt: null,  // Exclude soft-deleted items
       ...(published !== undefined ? { published } : {}),
       ...(isHomepage !== undefined ? { isHomepage } : {}),
       ...(showInMenu !== undefined ? { showInMenu } : {}),

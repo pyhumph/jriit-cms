@@ -42,7 +42,8 @@ export default function MediaLibraryPage() {
     if (session) {
       fetchMedia()
     }
-  }, [session, status, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, status])
 
   const fetchMedia = async () => {
     try {

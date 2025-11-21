@@ -107,7 +107,8 @@ export default function DashboardPage() {
     if (status === 'unauthenticated') {
       router.push('/login')
     }
-  }, [session, status, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, status])
 
   useEffect(() => {
     const fetchStats = async () => {

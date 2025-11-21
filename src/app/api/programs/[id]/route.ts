@@ -46,42 +46,25 @@ export async function GET(
       )
     }
 
-    // Debug: Log detail page fields to verify they're being returned
-    console.log('GET /api/programs/[id] - Program fetched:')
-    console.log('  id:', program.id)
-    console.log('  slug:', program.slug)
-    console.log('  detailPageLayout:', program.detailPageLayout)
-    console.log('  heroTitle:', program.heroTitle ? `"${program.heroTitle.substring(0, 50)}..."` : 'NULL')
-    console.log('  overviewContent:', program.overviewContent ? `HAS_CONTENT (${program.overviewContent.length} chars)` : 'NULL')
-    console.log('  learningItems:', program.learningItems ? `HAS_CONTENT (${program.learningItems.length} chars)` : 'NULL')
-    console.log('  modules:', program.modules ? `HAS_CONTENT (${program.modules.length} chars)` : 'NULL')
-    console.log('  customContent:', program.customContent ? `HAS_CONTENT (${program.customContent.length} chars)` : 'NULL')
-    console.log('  heroApplications:', program.heroApplications ? `HAS_CONTENT (${program.heroApplications.length} chars)` : 'NULL')
-    console.log('  applicationCards:', program.applicationCards ? `HAS_CONTENT (${program.applicationCards.length} chars)` : 'NULL')
-    console.log('  learningLevels:', program.learningLevels ? `HAS_CONTENT (${program.learningLevels.length} chars)` : 'NULL')
-    console.log('  suiteTitle:', program.suiteTitle || 'NULL')
-    console.log('  suiteDescription:', program.suiteDescription ? `HAS_CONTENT (${program.suiteDescription.length} chars)` : 'NULL')
-    console.log('  learningPathTitle:', program.learningPathTitle || 'NULL')
-    console.log('  learningPathDesc:', program.learningPathDesc ? `HAS_CONTENT (${program.learningPathDesc.length} chars)` : 'NULL')
-
     // Return program with all fields - Prisma includes all fields when using include
     return NextResponse.json({
       success: true,
       program,
     })
   } catch (error) {
+    const err = error instanceof Error ? error : new Error('Unknown error')
     console.error('❌ ERROR IN GET /api/programs/[id]:')
-    console.error('Error type:', error?.constructor?.name)
-    console.error('Error message:', error?.message)
-    console.error('Error stack:', error?.stack)
+    console.error('Error type:', err.constructor.name)
+    console.error('Error message:', err.message)
+    console.error('Error stack:', err.stack)
     if (error instanceof Error) {
       console.error('Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
     }
     return NextResponse.json(
       { 
         error: 'Internal server error',
-        message: error?.message || 'Unknown error',
-        details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+        message: err.message,
+        details: process.env.NODE_ENV === 'development' ? err.stack : undefined
       },
       { status: 500 }
     )
@@ -94,27 +77,14 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    console.log('1. PUT /api/programs/[id] - Starting...')
     const { id } = await params
-    console.log('2. Resolved params.id:', id)
     
     const session = await auth()
-    console.log('3. Session check:', session?.user ? 'Authenticated' : 'Not authenticated')
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
-    console.log('4. Body received, keys:', Object.keys(body))
-    console.log('5. Body sample (first 500 chars):', JSON.stringify(body).substring(0, 500))
-    console.log('5b. Custom layout fields in body:')
-    console.log('  heroApplications:', body.heroApplications ? `HAS_CONTENT (${body.heroApplications.length} chars)` : 'MISSING')
-    console.log('  applicationCards:', body.applicationCards ? `HAS_CONTENT (${body.applicationCards.length} chars)` : 'MISSING')
-    console.log('  learningLevels:', body.learningLevels ? `HAS_CONTENT (${body.learningLevels.length} chars)` : 'MISSING')
-    console.log('  suiteTitle:', body.suiteTitle || 'MISSING')
-    console.log('  suiteDescription:', body.suiteDescription ? `HAS_CONTENT (${body.suiteDescription.length} chars)` : 'MISSING')
-    console.log('  learningPathTitle:', body.learningPathTitle || 'MISSING')
-    console.log('  learningPathDesc:', body.learningPathDesc ? `HAS_CONTENT (${body.learningPathDesc.length} chars)` : 'MISSING')
     
     const updateSchema = z.object({
       name: z.string().min(1).optional(),
@@ -133,7 +103,15 @@ export async function PUT(
       order: z.number().optional(),
       // Detail Page Content Fields - all nullable and optional
       detailPageLayout: z.union([
-        z.enum(['standard', 'custom-applications', 'custom-adobe']),
+        z.enum([
+          'standard',
+          'custom-applications',
+          'custom-adobe',
+          'cyber-security',
+          'business-administration',
+          'travel-tourism',
+          'short-course',
+        ]),
         z.null(),
         z.literal(''),
       ]).transform((val) => val === '' ? null : val).optional(),
@@ -163,10 +141,31 @@ export async function PUT(
       learningPathTitle: z.string().nullable().optional(),
       learningPathDesc: z.string().nullable().optional(),
       learningLevels: z.string().nullable().optional(), // JSON string
+      // Business Administration layout fields
+      coreConcepts: z.string().nullable().optional(), // JSON string
+      learningPath: z.string().nullable().optional(), // JSON string
+      // Cyber Security layout fields
+      introParagraphs: z.string().nullable().optional(), // JSON string
+      classroomImage: z.string().nullable().optional(),
+      classroomTitle: z.string().nullable().optional(),
+      classroomParagraphs: z.string().nullable().optional(), // JSON string
+      beyondClassroomImage: z.string().nullable().optional(),
+      beyondClassroomTitle: z.string().nullable().optional(),
+      beyondClassroomParagraphs: z.string().nullable().optional(), // JSON string
+      differenceImage: z.string().nullable().optional(),
+      differenceTitle: z.string().nullable().optional(),
+      differenceParagraphs: z.string().nullable().optional(), // JSON string
+      // Computer Science / Engineering fields
+      level: z.string().nullable().optional(),
+      learningOutcomes: z.string().nullable().optional(), // JSON string
+      careerPaths: z.string().nullable().optional(), // JSON string
+      // Professional Course fields
+      keyCertifications: z.string().nullable().optional(), // JSON array string
+      externalLink: z.string().nullable().optional(), // External URL
     })
 
     // Filter out undefined values and convert empty strings to null
-    const cleanedBody: any = {}
+    const cleanedBody: Record<string, unknown> = {}
     for (const [key, value] of Object.entries(body)) {
       if (value !== undefined) {
         // Convert empty strings to null for nullable fields (except name and slug which are required)
@@ -208,19 +207,22 @@ export async function PUT(
       }
     }
 
-    console.log('6. Validated data keys:', Object.keys(validatedData))
-    console.log('6b. Custom layout fields in validatedData:')
-    console.log('  heroApplications:', validatedData.heroApplications ? `HAS_CONTENT (${validatedData.heroApplications.length} chars)` : 'MISSING')
-    console.log('  applicationCards:', validatedData.applicationCards ? `HAS_CONTENT (${validatedData.applicationCards.length} chars)` : 'MISSING')
-    console.log('  learningLevels:', validatedData.learningLevels ? `HAS_CONTENT (${validatedData.learningLevels.length} chars)` : 'MISSING')
-    console.log('  suiteTitle:', validatedData.suiteTitle || 'MISSING')
-    console.log('  suiteDescription:', validatedData.suiteDescription ? `HAS_CONTENT (${validatedData.suiteDescription.length} chars)` : 'MISSING')
-    console.log('  learningPathTitle:', validatedData.learningPathTitle || 'MISSING')
-    console.log('  learningPathDesc:', validatedData.learningPathDesc ? `HAS_CONTENT (${validatedData.learningPathDesc.length} chars)` : 'MISSING')
+    // Transform departmentId to use Prisma relation format
+    const updateData: Record<string, unknown> = { ...validatedData }
+    if ('departmentId' in updateData) {
+      const departmentId = updateData.departmentId
+      delete updateData.departmentId
+      
+      if (departmentId === null) {
+        updateData.department = { disconnect: true }
+      } else if (departmentId) {
+        updateData.department = { connect: { id: departmentId } }
+      }
+    }
 
     const program = await prisma.program.update({
       where: { id },
-      data: validatedData,
+      data: updateData,
       include: {
         author: {
           select: {
@@ -239,26 +241,19 @@ export async function PUT(
       },
     })
 
-    console.log('7. Program updated successfully')
-    console.log('7b. Saved custom layout fields:')
-    console.log('  heroApplications:', program.heroApplications ? `HAS_CONTENT (${program.heroApplications.length} chars)` : 'NULL')
-    console.log('  applicationCards:', program.applicationCards ? `HAS_CONTENT (${program.applicationCards.length} chars)` : 'NULL')
-    console.log('  learningLevels:', program.learningLevels ? `HAS_CONTENT (${program.learningLevels.length} chars)` : 'NULL')
-    console.log('  suiteTitle:', program.suiteTitle || 'NULL')
-    console.log('  suiteDescription:', program.suiteDescription ? `HAS_CONTENT (${program.suiteDescription.length} chars)` : 'NULL')
-    console.log('  learningPathTitle:', program.learningPathTitle || 'NULL')
-    console.log('  learningPathDesc:', program.learningPathDesc ? `HAS_CONTENT (${program.learningPathDesc.length} chars)` : 'NULL')
-
     return NextResponse.json({
       success: true,
       program,
     })
   } catch (error) {
+    const err = error instanceof Error ? error : new Error('Unknown error')
     console.error('❌ ERROR IN PUT /api/programs/[id]:')
-    console.error('Error type:', error?.constructor?.name)
-    console.error('Error message:', error?.message)
-    console.error('Error stack:', error?.stack)
+    console.error('Error type:', err.constructor.name)
+    console.error('Error message:', err.message)
+    console.error('Error stack:', err.stack)
+    if (error instanceof Error) {
     console.error('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
+    }
     
     if (error instanceof z.ZodError) {
       console.error('Zod validation errors:', error.issues)
@@ -271,8 +266,8 @@ export async function PUT(
     return NextResponse.json(
       { 
         error: 'Internal server error',
-        message: error?.message || 'Unknown error',
-        details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+        message: err.message,
+        details: process.env.NODE_ENV === 'development' ? err.stack : undefined
       },
       { status: 500 }
     )
@@ -303,13 +298,18 @@ export async function DELETE(
       )
     }
 
-    await prisma.program.delete({
-      where: { id }
+    // Soft delete: mark as deleted instead of actually deleting
+    await prisma.program.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        deletedBy: session.user.id
+      }
     })
 
     return NextResponse.json({
       success: true,
-      message: 'Program deleted successfully'
+      message: 'Program moved to Recycle Bin'
     })
   } catch (error) {
     console.error('Error deleting program:', error)

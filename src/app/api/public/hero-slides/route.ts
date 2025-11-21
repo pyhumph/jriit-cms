@@ -9,7 +9,8 @@ export async function GET(request: NextRequest) {
 
     const slides = await prisma.heroSlide.findMany({
       where: {
-        isActive: true
+        isActive: true,
+        deletedAt: null  // Exclude soft-deleted items
       },
       orderBy: { order: order as 'asc' | 'desc' },
       select: {

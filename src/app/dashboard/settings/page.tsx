@@ -323,7 +323,8 @@ export default function Settings() {
     } else {
       fetchSettings()
     }
-  }, [session, status, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, status])
 
   const fetchSettings = async () => {
     try {

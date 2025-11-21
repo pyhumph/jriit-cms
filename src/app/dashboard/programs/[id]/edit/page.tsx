@@ -12,6 +12,15 @@ import {
 } from '@heroicons/react/24/outline'
 import ImagePicker from '@/components/ImagePicker'
 
+type DetailLayout =
+  | 'standard'
+  | 'custom-applications'
+  | 'custom-adobe'
+  | 'cyber-security'
+  | 'business-administration'
+  | 'travel-tourism'
+  | 'short-course'
+
 interface Department {
   id: string
   name: string
@@ -44,6 +53,7 @@ interface Program {
   department: {
     id: string
     name: string
+    slug: string
   } | null
   // Detail page fields
   detailPageLayout?: string | null
@@ -65,6 +75,24 @@ interface Program {
   ctaTitle?: string | null
   ctaDescription?: string | null
   customContent?: string | null
+  // Cyber Security fields
+  introParagraphs?: string | null
+  classroomImage?: string | null
+  classroomTitle?: string | null
+  classroomParagraphs?: string | null
+  beyondClassroomImage?: string | null
+  beyondClassroomTitle?: string | null
+  beyondClassroomParagraphs?: string | null
+  differenceImage?: string | null
+  differenceTitle?: string | null
+  differenceParagraphs?: string | null
+  // Computer Science / Engineering fields
+  level?: string | null
+  learningOutcomes?: string | null
+  careerPaths?: string | null
+  // Professional Course fields
+  keyCertifications?: string | null
+  externalLink?: string | null
 }
 
 const COURSE_CATEGORIES = [
@@ -81,9 +109,12 @@ const COURSE_CATEGORIES = [
 ]
 
 const LAYOUT_OPTIONS = [
-  { value: 'standard', label: 'Standard Layout' },
+  { value: 'standard', label: 'Information Technology Layout' },
   { value: 'custom-applications', label: 'Custom Applications (MS Office)' },
   { value: 'custom-adobe', label: 'Custom Adobe' },
+  { value: 'business-administration', label: 'Business Administration Layout' },
+  { value: 'cyber-security', label: 'Cyber Security Layout' },
+  { value: 'travel-tourism', label: 'Travel & Tourism Layout' },
 ]
 
 export default function EditProgramPage() {
@@ -153,15 +184,29 @@ export default function EditProgramPage() {
     modules: string[]
   }
 
+  interface CoreConcept {
+    icon: string
+    title: string
+    description: string
+    features: string[]
+    color?: string
+  }
+
+  interface BusinessLearningPathLevel {
+    title: string
+    duration: string
+    topics: string[]
+  }
+
   // Detail page content state
   const [detailPageData, setDetailPageData] = useState({
-    detailPageLayout: 'standard' as 'standard' | 'custom-applications' | 'custom-adobe',
+    detailPageLayout: 'standard' as DetailLayout,
     heroTitle: '',
     heroSubtitle: '',
     heroImage: '',
     overviewTitle: 'Program Overview',
     overviewContent: '',
-    learningTitle: "What You'll Learn",
+    learningTitle: 'What You Will Learn',
     learningItems: [] as LearningItem[],
     modulesTitle: 'Course Modules',
     modules: [] as string[],
@@ -184,7 +229,69 @@ export default function EditProgramPage() {
     learningPathTitle: '',
     learningPathDesc: '',
     learningLevels: [] as LearningLevel[],
+    // Professional Course fields
+    level: '',
+    keyCertifications: '',
+    externalLink: '',
   })
+
+  // Cyber Security layout state
+  const [introParagraphs, setIntroParagraphs] = useState<string[]>([])
+  const [classroomImage, setClassroomImage] = useState('')
+  const [classroomTitle, setClassroomTitle] = useState('IN THE CLASSROOM')
+  const [classroomParagraphs, setClassroomParagraphs] = useState<string[]>([])
+  const [beyondClassroomImage, setBeyondClassroomImage] = useState('')
+  const [beyondClassroomTitle, setBeyondClassroomTitle] = useState('BEYOND THE CLASSROOM')
+  const [beyondClassroomParagraphs, setBeyondClassroomParagraphs] = useState<string[]>([])
+  const [differenceImage, setDifferenceImage] = useState('')
+  const [differenceTitle, setDifferenceTitle] = useState('CYBERSECURITY + THE JRIIT DIFFERENCE')
+  const [differenceParagraphs, setDifferenceParagraphs] = useState<string[]>([])
+  const [coreConcepts, setCoreConcepts] = useState<CoreConcept[]>([])
+  const [learningPath, setLearningPath] = useState<BusinessLearningPathLevel[]>([])
+
+  const isCustomLayout =
+    detailPageData.detailPageLayout === 'custom-applications' ||
+    detailPageData.detailPageLayout === 'custom-adobe'
+  const isCyberLayout = detailPageData.detailPageLayout === 'cyber-security'
+  const isBusinessLayout = detailPageData.detailPageLayout === 'business-administration'
+  const isTravelTourismLayout = detailPageData.detailPageLayout === 'travel-tourism'
+  const isShortCourseLayout = detailPageData.detailPageLayout === 'short-course'
+  
+  // Check if this is a Professional Course (no detail page content)
+  // We check both the department slug from the program and from the departments list
+  const isProfessionalCourse = 
+    program?.department?.slug === 'professional-course' ||
+    departments.find(d => d.id === formData.departmentId)?.slug === 'professional-course'
+
+  const parseJsonArray = <T,>(value: unknown, fallback: T[] = []): T[] => {
+    if (!value) return fallback
+    try {
+      if (typeof value === 'string') {
+        const parsed = JSON.parse(value)
+        return Array.isArray(parsed) ? parsed : fallback
+      }
+      return Array.isArray(value) ? (value as T[]) : fallback
+    } catch {
+      return fallback
+    }
+  }
+
+  const allowedLayouts: DetailLayout[] = [
+    'standard',
+    'custom-applications',
+    'custom-adobe',
+    'cyber-security',
+    'business-administration',
+    'travel-tourism',
+    'short-course',
+  ]
+
+  const normalizeLayout = (layout?: string | null): DetailLayout => {
+    if (layout && allowedLayouts.includes(layout as DetailLayout)) {
+      return layout as DetailLayout
+    }
+    return 'standard'
+  }
 
   // Track if we've already loaded the program to prevent refetching on tab switch
   const [hasLoaded, setHasLoaded] = useState(false)
@@ -202,19 +309,7 @@ export default function EditProgramPage() {
       setHasLoaded(true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, status, programId])
-
-  // Debug: Log when detailPageData changes
-  useEffect(() => {
-    console.log('Dashboard: detailPageData state changed:', {
-      detailPageLayout: detailPageData.detailPageLayout,
-      heroTitle: detailPageData.heroTitle ? `"${detailPageData.heroTitle.substring(0, 30)}..."` : 'EMPTY',
-      overviewContent: detailPageData.overviewContent ? `HAS_CONTENT (${detailPageData.overviewContent.length} chars)` : 'EMPTY',
-      learningItemsCount: detailPageData.learningItems.length,
-      modulesCount: detailPageData.modules.length,
-      careerOpportunitiesCount: detailPageData.careerOpportunities.length,
-    })
-  }, [detailPageData])
+  }, [session, status, programId, hasLoaded])
 
   const fetchProgram = async () => {
     try {
@@ -224,16 +319,6 @@ export default function EditProgramPage() {
         const data = await response.json()
         if (data.success && data.program) {
           const prog = data.program
-          
-          // Debug: Log what we received
-          console.log('Dashboard: Program fetched from API')
-          console.log('  slug:', prog.slug)
-          console.log('  detailPageLayout:', prog.detailPageLayout)
-          console.log('  heroTitle:', prog.heroTitle ? `"${prog.heroTitle.substring(0, 50)}..."` : 'NULL')
-          console.log('  overviewContent:', prog.overviewContent ? `HAS_CONTENT (${prog.overviewContent.length} chars)` : 'NULL')
-          console.log('  learningItems:', prog.learningItems ? 'HAS_CONTENT' : 'NULL')
-          console.log('  modules:', prog.modules ? 'HAS_CONTENT' : 'NULL')
-          console.log('  customContent:', prog.customContent ? 'HAS_CONTENT' : 'NULL')
           
           setProgram(prog)
           
@@ -313,13 +398,13 @@ export default function EditProgramPage() {
             }
             
             const detailData = {
-              detailPageLayout: (prog.detailPageLayout as any) || 'standard',
+              detailPageLayout: normalizeLayout(prog.detailPageLayout),
               heroTitle: prog.heroTitle || '',
               heroSubtitle: prog.heroSubtitle || '',
               heroImage: prog.heroImage || '',
               overviewTitle: prog.overviewTitle || 'Program Overview',
               overviewContent: prog.overviewContent || '',
-              learningTitle: prog.learningTitle || "What You'll Learn",
+              learningTitle: prog.learningTitle || 'What You Will Learn',
               learningItems: Array.isArray(learningItems) ? learningItems : [],
               modulesTitle: prog.modulesTitle || 'Course Modules',
               modules: Array.isArray(modules) ? modules : [],
@@ -342,16 +427,43 @@ export default function EditProgramPage() {
               learningPathTitle: prog.learningPathTitle || '',
               learningPathDesc: prog.learningPathDesc || '',
               learningLevels: learningLevels,
+              // Professional Course fields
+              level: prog.level || '',
+              keyCertifications: prog.keyCertifications 
+                ? (Array.isArray(JSON.parse(prog.keyCertifications)) 
+                  ? JSON.parse(prog.keyCertifications).join('\n') 
+                  : prog.keyCertifications)
+                : '',
+              externalLink: prog.externalLink || '',
             }
             
-            console.log('Dashboard: Setting detail page data:', {
-              detailPageLayout: detailData.detailPageLayout,
-              heroTitle: detailData.heroTitle ? `"${detailData.heroTitle.substring(0, 30)}..."` : 'EMPTY',
-              learningItemsCount: detailData.learningItems.length,
-              modulesCount: detailData.modules.length,
-            })
-            
             setDetailPageData(detailData)
+
+            // Cyber security layout fields
+            const parseParagraphs = (value?: string | null) => {
+              if (!value) return []
+              try {
+                const parsed = JSON.parse(value)
+                return Array.isArray(parsed) ? parsed : []
+              } catch {
+                return []
+              }
+            }
+
+            setIntroParagraphs(parseParagraphs(prog.introParagraphs))
+            setClassroomImage(prog.classroomImage || '')
+            setClassroomTitle(prog.classroomTitle || 'IN THE CLASSROOM')
+            setClassroomParagraphs(parseParagraphs(prog.classroomParagraphs))
+            setBeyondClassroomImage(prog.beyondClassroomImage || '')
+            setBeyondClassroomTitle(prog.beyondClassroomTitle || 'BEYOND THE CLASSROOM')
+            setBeyondClassroomParagraphs(parseParagraphs(prog.beyondClassroomParagraphs))
+            setDifferenceImage(prog.differenceImage || '')
+            setDifferenceTitle(prog.differenceTitle || 'CYBERSECURITY + THE JRIIT DIFFERENCE')
+            setDifferenceParagraphs(parseParagraphs(prog.differenceParagraphs))
+
+            // Business Administration layout fields
+            setCoreConcepts(parseJsonArray<CoreConcept>(prog.coreConcepts))
+            setLearningPath(parseJsonArray<BusinessLearningPathLevel>(prog.learningPath))
           } catch (e) {
             console.error('Error parsing detail page JSON:', e)
             console.error('Raw learningItems:', prog.learningItems)
@@ -465,7 +577,8 @@ export default function EditProgramPage() {
     }))
   }
 
-  // Custom content helper functions
+  // Custom content helper functions (legacy support)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const addApplication = () => {
     setDetailPageData(prev => ({
       ...prev,
@@ -473,6 +586,7 @@ export default function EditProgramPage() {
     }))
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const removeApplication = (index: number) => {
     setDetailPageData(prev => ({
       ...prev,
@@ -480,6 +594,7 @@ export default function EditProgramPage() {
     }))
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const updateApplication = (index: number, field: keyof Application, value: string | string[]) => {
     setDetailPageData(prev => ({
       ...prev,
@@ -489,6 +604,7 @@ export default function EditProgramPage() {
     }))
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const addApplicationFeature = (appIndex: number) => {
     setDetailPageData(prev => ({
       ...prev,
@@ -498,6 +614,7 @@ export default function EditProgramPage() {
     }))
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const removeApplicationFeature = (appIndex: number, featureIndex: number) => {
     setDetailPageData(prev => ({
       ...prev,
@@ -509,6 +626,7 @@ export default function EditProgramPage() {
     }))
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const updateApplicationFeature = (appIndex: number, featureIndex: number, value: string) => {
     setDetailPageData(prev => ({
       ...prev,
@@ -520,6 +638,7 @@ export default function EditProgramPage() {
     }))
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const addSkillLevel = () => {
     setDetailPageData(prev => ({
       ...prev,
@@ -527,6 +646,7 @@ export default function EditProgramPage() {
     }))
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const removeSkillLevel = (index: number) => {
     setDetailPageData(prev => ({
       ...prev,
@@ -534,6 +654,7 @@ export default function EditProgramPage() {
     }))
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const updateSkillLevel = (index: number, field: keyof SkillLevel, value: string | string[]) => {
     setDetailPageData(prev => ({
       ...prev,
@@ -543,6 +664,7 @@ export default function EditProgramPage() {
     }))
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const addSkillLevelApp = (levelIndex: number) => {
     setDetailPageData(prev => ({
       ...prev,
@@ -552,6 +674,7 @@ export default function EditProgramPage() {
     }))
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const removeSkillLevelApp = (levelIndex: number, appIndex: number) => {
     setDetailPageData(prev => ({
       ...prev,
@@ -563,6 +686,7 @@ export default function EditProgramPage() {
     }))
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const updateSkillLevelApp = (levelIndex: number, appIndex: number, value: string) => {
     setDetailPageData(prev => ({
       ...prev,
@@ -706,6 +830,142 @@ export default function EditProgramPage() {
     }))
   }
 
+  const addCoreConcept = () => {
+    setCoreConcepts(prev => [
+      ...prev,
+      { icon: '', title: '', description: '', features: [''], color: 'blue' },
+    ])
+  }
+
+  const removeCoreConcept = (index: number) => {
+    setCoreConcepts(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const updateCoreConcept = (index: number, field: keyof CoreConcept, value: string) => {
+    setCoreConcepts(prev =>
+      prev.map((concept, i) =>
+        i === index
+          ? {
+              ...concept,
+              [field]: value,
+            }
+          : concept
+      )
+    )
+  }
+
+  const addCoreConceptFeature = (conceptIndex: number) => {
+    setCoreConcepts(prev =>
+      prev.map((concept, i) =>
+        i === conceptIndex
+          ? { ...concept, features: [...(concept.features || []), ''] }
+          : concept
+      )
+    )
+  }
+
+  const updateCoreConceptFeature = (
+    conceptIndex: number,
+    featureIndex: number,
+    value: string
+  ) => {
+    setCoreConcepts(prev =>
+      prev.map((concept, i) =>
+        i === conceptIndex
+          ? {
+              ...concept,
+              features: concept.features.map((feature, fi) =>
+                fi === featureIndex ? value : feature
+              ),
+            }
+          : concept
+      )
+    )
+  }
+
+  const removeCoreConceptFeature = (conceptIndex: number, featureIndex: number) => {
+    setCoreConcepts(prev =>
+      prev.map((concept, i) =>
+        i === conceptIndex
+          ? {
+              ...concept,
+              features: concept.features.filter((_, fi) => fi !== featureIndex),
+            }
+          : concept
+      )
+    )
+  }
+
+  const addLearningPathLevel = () => {
+    setLearningPath(prev => [
+      ...prev,
+      { title: '', duration: '', topics: [''] },
+    ])
+  }
+
+  const removeLearningPathLevel = (index: number) => {
+    setLearningPath(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const updateLearningPathLevel = (
+    index: number,
+    field: keyof BusinessLearningPathLevel,
+    value: string
+  ) => {
+    setLearningPath(prev =>
+      prev.map((level, i) =>
+        i === index
+          ? {
+              ...level,
+              [field]: value,
+            }
+          : level
+      )
+    )
+  }
+
+  const addLearningPathTopic = (levelIndex: number) => {
+    setLearningPath(prev =>
+      prev.map((level, i) =>
+        i === levelIndex
+          ? { ...level, topics: [...(level.topics || []), ''] }
+          : level
+      )
+    )
+  }
+
+  const updateLearningPathTopic = (
+    levelIndex: number,
+    topicIndex: number,
+    value: string
+  ) => {
+    setLearningPath(prev =>
+      prev.map((level, i) =>
+        i === levelIndex
+          ? {
+              ...level,
+              topics: level.topics.map((topic, ti) =>
+                ti === topicIndex ? value : topic
+              ),
+            }
+          : level
+      )
+    )
+  }
+
+  const removeLearningPathTopic = (levelIndex: number, topicIndex: number) => {
+    setLearningPath(prev =>
+      prev.map((level, i) =>
+        i === levelIndex
+          ? {
+              ...level,
+              topics: level.topics.filter((_, ti) => ti !== topicIndex),
+            }
+          : level
+      )
+    )
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -719,9 +979,35 @@ export default function EditProgramPage() {
       setStatusMessage({ type: 'info', message: 'Updating program...' })
 
       // Build update payload - only include fields from the active tab
-      const updatePayload: any = {
+      const updatePayload: Record<string, unknown> = {
         ...formData,
         departmentId: formData.departmentId || null,
+      }
+
+      // Professional Courses: Add specific fields from basic tab
+      if (isProfessionalCourse) {
+        updatePayload.level = detailPageData.level || null
+        updatePayload.externalLink = detailPageData.externalLink || null
+        
+        // Parse keyCertifications from textarea (line-separated) to JSON array
+        const keyCerts = detailPageData.keyCertifications
+          ?.split('\n')
+          .map(cert => cert.trim())
+          .filter(cert => cert.length > 0) || []
+        updatePayload.keyCertifications = keyCerts.length > 0 ? JSON.stringify(keyCerts) : null
+        
+        // Clear detail page content for Professional Courses
+        updatePayload.detailPageLayout = null
+        updatePayload.heroTitle = null
+        updatePayload.heroSubtitle = null
+        updatePayload.heroImage = null
+        updatePayload.overviewTitle = null
+        updatePayload.overviewContent = null
+        updatePayload.coreConcepts = null
+        updatePayload.learningPath = null
+        updatePayload.modules = null
+        updatePayload.ctaTitle = null
+        updatePayload.ctaDescription = null
       }
 
       // Only include detail page fields if we're on the detail tab
@@ -759,7 +1045,7 @@ export default function EditProgramPage() {
         updatePayload.ctaDescription = detailPageData.ctaDescription || null
         
         // Convert custom content arrays to JSON string (legacy)
-        if (detailPageData.detailPageLayout !== 'standard') {
+        if (isCustomLayout) {
           const customContent = {
             applications: detailPageData.applications || [],
             skillLevels: detailPageData.skillLevels || [],
@@ -770,7 +1056,7 @@ export default function EditProgramPage() {
         }
 
         // Save new custom layout fields
-        if (detailPageData.detailPageLayout === 'custom-applications' || detailPageData.detailPageLayout === 'custom-adobe') {
+        if (isCustomLayout) {
           updatePayload.heroApplications = detailPageData.heroApplications.length > 0
             ? JSON.stringify(detailPageData.heroApplications)
             : null
@@ -785,7 +1071,6 @@ export default function EditProgramPage() {
             ? JSON.stringify(detailPageData.learningLevels)
             : null
         } else {
-          // Clear custom layout fields for standard layout
           updatePayload.heroApplications = null
           updatePayload.suiteTitle = null
           updatePayload.suiteDescription = null
@@ -793,6 +1078,67 @@ export default function EditProgramPage() {
           updatePayload.learningPathTitle = null
           updatePayload.learningPathDesc = null
           updatePayload.learningLevels = null
+        }
+
+        if (isBusinessLayout || isTravelTourismLayout || isShortCourseLayout) {
+          const sanitizedConcepts = coreConcepts.map((concept) => ({
+            ...concept,
+            icon: concept.icon || '',
+            title: concept.title || '',
+            description: concept.description || '',
+            color: concept.color || 'blue',
+            features: (concept.features || [])
+              .map((feature) => feature.trim())
+              .filter((feature) => feature.length > 0),
+          }))
+          const sanitizedLearningPath = learningPath.map((level) => ({
+            ...level,
+            title: level.title || '',
+            duration: level.duration || '',
+            topics: (level.topics || [])
+              .map((topic) => topic.trim())
+              .filter((topic) => topic.length > 0),
+          }))
+
+          updatePayload.coreConcepts =
+            sanitizedConcepts.length > 0 ? JSON.stringify(sanitizedConcepts) : null
+          updatePayload.learningPath =
+            sanitizedLearningPath.length > 0 ? JSON.stringify(sanitizedLearningPath) : null
+        } else {
+          updatePayload.coreConcepts = null
+          updatePayload.learningPath = null
+        }
+
+        if (isCyberLayout) {
+          updatePayload.introParagraphs = introParagraphs.length > 0
+            ? JSON.stringify(introParagraphs)
+            : null
+          updatePayload.classroomImage = classroomImage || null
+          updatePayload.classroomTitle = classroomTitle || null
+          updatePayload.classroomParagraphs = classroomParagraphs.length > 0
+            ? JSON.stringify(classroomParagraphs)
+            : null
+          updatePayload.beyondClassroomImage = beyondClassroomImage || null
+          updatePayload.beyondClassroomTitle = beyondClassroomTitle || null
+          updatePayload.beyondClassroomParagraphs = beyondClassroomParagraphs.length > 0
+            ? JSON.stringify(beyondClassroomParagraphs)
+            : null
+          updatePayload.differenceImage = differenceImage || null
+          updatePayload.differenceTitle = differenceTitle || null
+          updatePayload.differenceParagraphs = differenceParagraphs.length > 0
+            ? JSON.stringify(differenceParagraphs)
+            : null
+        } else {
+          updatePayload.introParagraphs = null
+          updatePayload.classroomImage = null
+          updatePayload.classroomTitle = null
+          updatePayload.classroomParagraphs = null
+          updatePayload.beyondClassroomImage = null
+          updatePayload.beyondClassroomTitle = null
+          updatePayload.beyondClassroomParagraphs = null
+          updatePayload.differenceImage = null
+          updatePayload.differenceTitle = null
+          updatePayload.differenceParagraphs = null
         }
       }
       // If on basic tab, don't send detail page fields at all (partial update)
@@ -805,9 +1151,8 @@ export default function EditProgramPage() {
 
       if (response.ok) {
         setStatusMessage({ type: 'success', message: 'Program updated successfully!' })
-        setTimeout(() => {
-          router.push('/dashboard/programs')
-        }, 1500)
+        // Don't redirect - let user stay on page to continue editing
+        // They can manually go back if needed
       } else {
         const error = await response.json()
         setStatusMessage({ type: 'error', message: error.error || 'Failed to update program' })
@@ -902,16 +1247,19 @@ export default function EditProgramPage() {
             >
               Basic Information
             </button>
-            <button
-              onClick={() => setActiveTab('detail')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'detail'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Detail Page Content
-            </button>
+            {/* Hide Detail Page Content tab for Professional Courses */}
+            {!isProfessionalCourse && (
+              <button
+                onClick={() => setActiveTab('detail')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'detail'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Detail Page Content
+              </button>
+            )}
           </nav>
         </div>
 
@@ -976,6 +1324,29 @@ export default function EditProgramPage() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
+
+                {/* Program Card Image - For all programs except Professional Courses */}
+                {!isProfessionalCourse && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Program Card Image
+                    </label>
+                    <ImagePicker
+                      value={formData.featuredImage}
+                      onChange={(url) => setFormData(prev => ({ ...prev, featuredImage: url }))}
+                      label="Select Program Card Image"
+                    />
+                    {formData.featuredImage && (
+                      <div className="mt-2">
+                        <img 
+                          src={formData.featuredImage} 
+                          alt="Program card preview" 
+                          className="w-full max-w-md h-48 object-cover rounded-lg border border-gray-200"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-4">
@@ -1016,11 +1387,87 @@ export default function EditProgramPage() {
                   </label>
                 </div>
               </div>
+
+              {/* Professional Course Specific Fields */}
+              {isProfessionalCourse && (
+                <div className="space-y-4 border-t border-gray-200 pt-6">
+                  <h2 className="text-xl font-semibold text-gray-900 border-b border-gray-200 pb-2">Professional Course Details</h2>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
+                    <input
+                      type="text"
+                      value={formData.duration}
+                      onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
+                      placeholder="e.g., 3-6 months"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
+                    <input
+                      type="text"
+                      value={detailPageData.level || ''}
+                      onChange={(e) => setDetailPageData(prev => ({ ...prev, level: e.target.value }))}
+                      placeholder="e.g., Beginner to Advanced"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">External Link (Learn More URL)</label>
+                    <input
+                      type="url"
+                      value={detailPageData.externalLink || ''}
+                      onChange={(e) => setDetailPageData(prev => ({ ...prev, externalLink: e.target.value }))}
+                      placeholder="https://example.com"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Program Image
+                    </label>
+                    <ImagePicker
+                      value={formData.featuredImage}
+                      onChange={(url) => setFormData(prev => ({ ...prev, featuredImage: url }))}
+                      label="Select Program Image"
+                    />
+                    {formData.featuredImage && (
+                      <div className="mt-2">
+                        <img 
+                          src={formData.featuredImage} 
+                          alt="Program preview" 
+                          className="w-full max-w-md h-48 object-cover rounded-lg border border-gray-200"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Key Certifications <span className="text-xs text-gray-500">(one per line)</span>
+                    </label>
+                    <textarea
+                      value={detailPageData.keyCertifications || ''}
+                      onChange={(e) => setDetailPageData(prev => ({ ...prev, keyCertifications: e.target.value }))}
+                      rows={6}
+                      placeholder="A+ Certification for IT Fundamentals&#10;Network+ for Networking Skills&#10;Security+ for Cybersecurity"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Enter each certification on a new line. These will appear as bullet points on the frontend.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {/* Detail Page Content Tab */}
-          {activeTab === 'detail' && (
+          {/* Detail Page Content Tab - Hidden for Professional Courses */}
+          {activeTab === 'detail' && !isProfessionalCourse && (
             <div className="space-y-6">
               {/* Layout Selector */}
               <div className="space-y-4">
@@ -1029,7 +1476,7 @@ export default function EditProgramPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Page Layout</label>
                   <select
                     value={detailPageData.detailPageLayout}
-                    onChange={(e) => setDetailPageData(prev => ({ ...prev, detailPageLayout: e.target.value as any }))}
+                    onChange={(e) => setDetailPageData(prev => ({ ...prev, detailPageLayout: e.target.value as DetailLayout }))}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     {LAYOUT_OPTIONS.map((option) => (
@@ -1076,8 +1523,8 @@ export default function EditProgramPage() {
                 </div>
               </div>
 
-              {/* Overview Section - Hidden for custom layouts */}
-              {detailPageData.detailPageLayout === 'standard' && (
+              {/* Overview Section - Show for standard, BA, T&T, and Short Course layouts */}
+              {(detailPageData.detailPageLayout === 'standard' || isBusinessLayout || isTravelTourismLayout || isShortCourseLayout) && (
               <div className="space-y-4">
                 <h2 className="text-xl font-semibold text-gray-900 border-b border-gray-200 pb-2">Overview Section</h2>
                 <div>
@@ -1106,7 +1553,7 @@ export default function EditProgramPage() {
               {detailPageData.detailPageLayout === 'standard' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-semibold text-gray-900 border-b border-gray-200 pb-2 flex-1">What You'll Learn</h2>
+                  <h2 className="text-xl font-semibold text-gray-900 border-b border-gray-200 pb-2 flex-1">What You Will Learn</h2>
                   <button
                     type="button"
                     onClick={addLearningItem}
@@ -1180,14 +1627,14 @@ export default function EditProgramPage() {
                     </div>
                   ))}
                   {detailPageData.learningItems.length === 0 && (
-                    <p className="text-sm text-gray-500 text-center py-4">No learning items added yet. Click "Add Item" to get started.</p>
+                    <p className="text-sm text-gray-500 text-center py-4">No learning items added yet. Click Add Item to get started.</p>
                   )}
                 </div>
               </div>
               )}
 
               {/* Course Modules - Hidden for custom layouts */}
-              {detailPageData.detailPageLayout === 'standard' && (
+              {(detailPageData.detailPageLayout === 'standard' || isBusinessLayout || isTravelTourismLayout || isShortCourseLayout) && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-semibold text-gray-900 border-b border-gray-200 pb-2 flex-1">Course Modules</h2>
@@ -1229,7 +1676,7 @@ export default function EditProgramPage() {
                     </div>
                   ))}
                   {detailPageData.modules.length === 0 && (
-                    <p className="text-sm text-gray-500 text-center py-4">No modules added yet. Click "Add Module" to get started.</p>
+                    <p className="text-sm text-gray-500 text-center py-4">No modules added yet. Click Add Module to get started.</p>
                   )}
                 </div>
               </div>
@@ -1327,14 +1774,374 @@ export default function EditProgramPage() {
                     </div>
                   ))}
                   {detailPageData.careerOpportunities.length === 0 && (
-                    <p className="text-sm text-gray-500 text-center py-4">No career opportunities added yet. Click "Add Career" to get started.</p>
+                    <p className="text-sm text-gray-500 text-center py-4">No career opportunities added yet. Click Add Career to get started.</p>
                   )}
                 </div>
               </div>
               )}
 
+              {/* Cyber Security Layout Fields */}
+              {isCyberLayout && (
+                <div className="space-y-8 border-t border-gray-200 pt-8">
+                  <h2 className="text-2xl font-bold text-gray-900">Cyber Security Layout Content</h2>
+
+                  <div>
+                    <label className="block font-medium mb-2">Introduction Paragraphs</label>
+                    <p className="text-sm text-gray-600 mb-2">Separate each paragraph with a blank line.</p>
+                    <textarea
+                      value={introParagraphs.join('\n\n')}
+                      onChange={(e) => {
+                        const paragraphs = e.target.value
+                          .split(/\n{2,}/)
+                          .map((p) => p.trim())
+                          .filter(Boolean)
+                        setIntroParagraphs(paragraphs)
+                      }}
+                      className="w-full border rounded px-3 py-2 min-h-[200px]"
+                      placeholder="First paragraph...
+
+Second paragraph..."
+                    />
+                  </div>
+
+                  <div className="p-4 bg-gray-50 rounded space-y-4">
+                    <h3 className="text-lg font-semibold">In the Classroom</h3>
+                    <div>
+                      <label className="block font-medium mb-2">Section Title</label>
+                      <input
+                        type="text"
+                        value={classroomTitle}
+                        onChange={(e) => setClassroomTitle(e.target.value)}
+                        className="w-full border rounded px-3 py-2"
+                        placeholder="IN THE CLASSROOM"
+                      />
+                    </div>
+                    <ImagePicker
+                      label="Classroom Image"
+                      value={classroomImage}
+                      onChange={setClassroomImage}
+                    />
+                    <div>
+                      <label className="block font-medium mb-2">Content Paragraphs</label>
+                      <textarea
+                        value={classroomParagraphs.join('\n\n')}
+                        onChange={(e) => {
+                          const paragraphs = e.target.value
+                            .split(/\n{2,}/)
+                            .map((p) => p.trim())
+                            .filter(Boolean)
+                          setClassroomParagraphs(paragraphs)
+                        }}
+                        className="w-full border rounded px-3 py-2 min-h-[150px]"
+                        placeholder="First paragraph...
+
+Second paragraph..."
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-gray-50 rounded space-y-4">
+                    <h3 className="text-lg font-semibold">Beyond the Classroom</h3>
+                    <div>
+                      <label className="block font-medium mb-2">Section Title</label>
+                      <input
+                        type="text"
+                        value={beyondClassroomTitle}
+                        onChange={(e) => setBeyondClassroomTitle(e.target.value)}
+                        className="w-full border rounded px-3 py-2"
+                        placeholder="BEYOND THE CLASSROOM"
+                      />
+                    </div>
+                    <ImagePicker
+                      label="Beyond the Classroom Image"
+                      value={beyondClassroomImage}
+                      onChange={setBeyondClassroomImage}
+                    />
+                    <div>
+                      <label className="block font-medium mb-2">Content Paragraphs</label>
+                      <textarea
+                        value={beyondClassroomParagraphs.join('\n\n')}
+                        onChange={(e) => {
+                          const paragraphs = e.target.value
+                            .split(/\n{2,}/)
+                            .map((p) => p.trim())
+                            .filter(Boolean)
+                          setBeyondClassroomParagraphs(paragraphs)
+                        }}
+                        className="w-full border rounded px-3 py-2 min-h-[150px]"
+                        placeholder="First paragraph...
+
+Second paragraph..."
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-gray-50 rounded space-y-4">
+                    <h3 className="text-lg font-semibold">The JRIIT Difference</h3>
+                    <div>
+                      <label className="block font-medium mb-2">Section Title</label>
+                      <input
+                        type="text"
+                        value={differenceTitle}
+                        onChange={(e) => setDifferenceTitle(e.target.value)}
+                        className="w-full border rounded px-3 py-2"
+                        placeholder="CYBERSECURITY + THE JRIIT DIFFERENCE"
+                      />
+                    </div>
+                    <ImagePicker
+                      label="Difference Image"
+                      value={differenceImage}
+                      onChange={setDifferenceImage}
+                    />
+                    <div>
+                      <label className="block font-medium mb-2">Content Paragraphs</label>
+                      <textarea
+                        value={differenceParagraphs.join('\n\n')}
+                        onChange={(e) => {
+                          const paragraphs = e.target.value
+                            .split(/\n{2,}/)
+                            .map((p) => p.trim())
+                            .filter(Boolean)
+                          setDifferenceParagraphs(paragraphs)
+                        }}
+                        className="w-full border rounded px-3 py-2 min-h-[150px]"
+                        placeholder="First paragraph...
+
+Second paragraph..."
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {(isBusinessLayout || isTravelTourismLayout || isShortCourseLayout) && (
+                <div className="space-y-8 border-t border-gray-200 pt-8">
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {isBusinessLayout ? 'Business Administration' : isTravelTourismLayout ? 'Travel & Tourism' : 'Short Course'} Layout Content
+                  </h2>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xl font-semibold text-gray-900">Core Strategic Concepts</h3>
+                      <button
+                        type="button"
+                        onClick={addCoreConcept}
+                        className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+                      >
+                        <PlusIcon className="h-4 w-4 mr-1" />
+                        Add Concept
+                      </button>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      Define the strategic pillars for this program. Icons should match Lucide icon names (e.g., Target, Map, TrendingUp).
+                    </p>
+
+                    <div className="space-y-4">
+                      {coreConcepts.map((concept, index) => (
+                        <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50 space-y-4">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-semibold text-gray-800">Concept {index + 1}</h4>
+                            <button
+                              type="button"
+                              onClick={() => removeCoreConcept(index)}
+                              className="p-2 text-red-600 hover:text-red-700"
+                            >
+                              <TrashIcon className="h-5 w-5" />
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Icon Name</label>
+                              <input
+                                type="text"
+                                value={concept.icon}
+                                onChange={(e) => updateCoreConcept(index, 'icon', e.target.value)}
+                                placeholder="e.g., Target"
+                                className="w-full border rounded px-3 py-2"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Accent Color</label>
+                              <input
+                                type="text"
+                                value={concept.color || ''}
+                                onChange={(e) => updateCoreConcept(index, 'color', e.target.value)}
+                                placeholder="e.g., blue, green"
+                                className="w-full border rounded px-3 py-2"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                            <input
+                              type="text"
+                              value={concept.title}
+                              onChange={(e) => updateCoreConcept(index, 'title', e.target.value)}
+                              className="w-full border rounded px-3 py-2"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <textarea
+                              value={concept.description}
+                              onChange={(e) => updateCoreConcept(index, 'description', e.target.value)}
+                              rows={3}
+                              className="w-full border rounded px-3 py-2"
+                            />
+                          </div>
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="block text-sm font-medium text-gray-700">Key Features</label>
+                              <button
+                                type="button"
+                                onClick={() => addCoreConceptFeature(index)}
+                                className="text-sm text-blue-600 hover:text-blue-700 flex items-center"
+                              >
+                                <PlusIcon className="h-4 w-4 mr-1" />
+                                Add Feature
+                              </button>
+                            </div>
+                            <div className="space-y-2">
+                              {(concept.features || []).map((feature, featureIndex) => (
+                                <div key={featureIndex} className="flex items-center space-x-2">
+                                  <input
+                                    type="text"
+                                    value={feature}
+                                    onChange={(e) =>
+                                      updateCoreConceptFeature(index, featureIndex, e.target.value)
+                                    }
+                                    placeholder={`Feature ${featureIndex + 1}`}
+                                    className="flex-1 border rounded px-3 py-2"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => removeCoreConceptFeature(index, featureIndex)}
+                                    className="p-2 text-red-600 hover:text-red-700"
+                                  >
+                                    <TrashIcon className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              ))}
+                              {(!concept.features || concept.features.length === 0) && (
+                                <p className="text-sm text-gray-500">
+                                  No features yet. Click Add Feature to create one.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {coreConcepts.length === 0 && (
+                        <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">
+                          No concepts added yet. Click Add Concept to get started.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xl font-semibold text-gray-900">Learning Path</h3>
+                      <button
+                        type="button"
+                        onClick={addLearningPathLevel}
+                        className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+                      >
+                        <PlusIcon className="h-4 w-4 mr-1" />
+                        Add Level
+                      </button>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      Define the staged learning journey. Include duration and topics for each level.
+                    </p>
+                    <div className="space-y-4">
+                      {learningPath.map((level, index) => (
+                        <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50 space-y-4">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-semibold text-gray-800">Level {index + 1}</h4>
+                            <button
+                              type="button"
+                              onClick={() => removeLearningPathLevel(index)}
+                              className="p-2 text-red-600 hover:text-red-700"
+                            >
+                              <TrashIcon className="h-5 w-5" />
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Level Title</label>
+                              <input
+                                type="text"
+                                value={level.title}
+                                onChange={(e) => updateLearningPathLevel(index, 'title', e.target.value)}
+                                className="w-full border rounded px-3 py-2"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
+                              <input
+                                type="text"
+                                value={level.duration}
+                                onChange={(e) => updateLearningPathLevel(index, 'duration', e.target.value)}
+                                className="w-full border rounded px-3 py-2"
+                                placeholder="e.g., 3 months"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="block text-sm font-medium text-gray-700">Topics</label>
+                              <button
+                                type="button"
+                                onClick={() => addLearningPathTopic(index)}
+                                className="text-sm text-blue-600 hover:text-blue-700 flex items-center"
+                              >
+                                <PlusIcon className="h-4 w-4 mr-1" />
+                                Add Topic
+                              </button>
+                            </div>
+                            <div className="space-y-2">
+                              {(level.topics || []).map((topic, topicIndex) => (
+                                <div key={topicIndex} className="flex items-center space-x-2">
+                                  <input
+                                    type="text"
+                                    value={topic}
+                                    onChange={(e) =>
+                                      updateLearningPathTopic(index, topicIndex, e.target.value)
+                                    }
+                                    placeholder={`Topic ${topicIndex + 1}`}
+                                    className="flex-1 border rounded px-3 py-2"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => removeLearningPathTopic(index, topicIndex)}
+                                    className="p-2 text-red-600 hover:text-red-700"
+                                  >
+                                    <TrashIcon className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              ))}
+                              {(!level.topics || level.topics.length === 0) && (
+                                <p className="text-sm text-gray-500">
+                                  No topics yet. Click Add Topic to list learning outcomes.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {learningPath.length === 0 && (
+                        <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">
+                          No learning path levels added yet. Click Add Level to get started.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Custom Content (for custom layouts) - Legacy */}
-              {detailPageData.detailPageLayout !== 'standard' && (
+              {isCustomLayout && (
                 <div className="space-y-6">
                   {/* Hero Applications Section */}
                   <div className="space-y-4">
@@ -1414,7 +2221,7 @@ export default function EditProgramPage() {
                       ))}
                       {detailPageData.heroApplications.length === 0 && (
                         <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">
-                          No hero applications added yet. Click "Add Application" to get started.
+                          No hero applications added yet. Click Add Application to get started.
                         </p>
                       )}
                     </div>
@@ -1546,7 +2353,7 @@ export default function EditProgramPage() {
                       ))}
                       {detailPageData.applicationCards.length === 0 && (
                         <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">
-                          No application cards added yet. Click "Add Application Card" to get started.
+                          No application cards added yet. Click Add Application Card to get started.
                         </p>
                       )}
                     </div>
@@ -1658,7 +2465,7 @@ export default function EditProgramPage() {
                       ))}
                       {detailPageData.learningLevels.length === 0 && (
                         <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">
-                          No learning levels added yet. Click "Add Learning Level" to get started.
+                          No learning levels added yet. Click Add Learning Level to get started.
                         </p>
                       )}
                     </div>

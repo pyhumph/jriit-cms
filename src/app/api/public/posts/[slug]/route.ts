@@ -10,7 +10,8 @@ export async function GET(
     const post = await prisma.post.findFirst({
       where: { 
         slug: params.slug,
-        published: true 
+        published: true,
+        deletedAt: null  // Exclude soft-deleted items
       },
       include: {
         author: {

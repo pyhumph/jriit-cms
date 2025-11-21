@@ -17,6 +17,7 @@ import {
   AcademicCapIcon,
   BuildingOfficeIcon
 } from '@heroicons/react/24/outline'
+import DeleteConfirmationModal from '@/components/DeleteConfirmationModal'
 
 interface Program {
   id: string
@@ -68,6 +69,9 @@ export default function ProgramsPage() {
   const [filterDepartment, setFilterDepartment] = useState('all')
   const [sortBy, setSortBy] = useState('name')
   const [departments, setDepartments] = useState<Array<{ id: string; name: string }>>([])
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [programToDelete, setProgramToDelete] = useState<{ id: string; name: string } | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -79,7 +83,8 @@ export default function ProgramsPage() {
       fetchPrograms()
       fetchDepartments()
     }
-  }, [session, status, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, status])
 
   const fetchDepartments = async () => {
     try {
@@ -96,7 +101,10 @@ export default function ProgramsPage() {
   const fetchPrograms = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/programs?limit=1000') // Get all programs
+      // Add cache-busting parameter to ensure fresh data
+      const response = await fetch(`/api/programs?limit=1000&_t=${Date.now()}`, {
+        cache: 'no-store'
+      })
       if (response.ok) {
         const data = await response.json()
         setPrograms(data.programs || [])
@@ -116,20 +124,50 @@ export default function ProgramsPage() {
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this program?')) return
+  const handleDeleteClick = (program: Program) => {
+    setProgramToDelete({ id: program.id, name: program.name })
+    setDeleteModalOpen(true)
+  }
+
+  const handleDeleteConfirm = async (permanent: boolean) => {
+    if (!programToDelete) return
     
+    setIsDeleting(true)
     try {
-      const response = await fetch(`/api/programs/${id}`, {
-        method: 'DELETE'
+      const endpoint = permanent 
+        ? '/api/recycle-bin/permanent-delete'
+        : `/api/programs/${programToDelete.id}`
+      
+      const body = permanent 
+        ? JSON.stringify({ itemType: 'program', itemId: programToDelete.id })
+        : undefined
+      
+      const response = await fetch(endpoint, {
+        method: permanent ? 'POST' : 'DELETE',
+        headers: permanent ? { 'Content-Type': 'application/json' } : undefined,
+        body
       })
       
       if (response.ok) {
-        setPrograms(programs.filter(program => program.id !== id))
-        fetchPrograms() // Refresh stats
+        // Immediately remove from UI
+        setPrograms(programs.filter(program => program.id !== programToDelete.id))
+        
+        // Wait a bit then refresh to ensure backend is updated
+        setTimeout(() => {
+          fetchPrograms()
+        }, 100)
+        
+        alert(permanent ? 'Program permanently deleted' : 'Program moved to Recycle Bin')
+      } else {
+        const error = await response.json()
+        alert(`Failed to delete program: ${error.error || 'Unknown error'}`)
       }
     } catch (error) {
       console.error('Error deleting program:', error)
+      alert('Failed to delete program')
+    } finally {
+      setIsDeleting(false)
+      setProgramToDelete(null)
     }
   }
 
@@ -401,7 +439,7 @@ export default function ProgramsPage() {
                             <PencilIcon className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => handleDelete(program.id)}
+                            onClick={() => handleDeleteClick(program)}
                             className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Delete"
                           >
@@ -417,6 +455,21 @@ export default function ProgramsPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {programToDelete && (
+        <DeleteConfirmationModal
+          isOpen={deleteModalOpen}
+          onClose={() => {
+            setDeleteModalOpen(false)
+            setProgramToDelete(null)
+          }}
+          onConfirm={handleDeleteConfirm}
+          itemName={programToDelete.name}
+          itemType="program"
+          isDeleting={isDeleting}
+        />
+      )}
     </div>
   )
 }
